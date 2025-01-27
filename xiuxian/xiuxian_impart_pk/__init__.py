@@ -31,7 +31,7 @@ impart_pk_exp = on_command("xf虚神界修炼", priority=8, permission=GROUP, bl
 
 
 # 每日0点重置用虚神界次数
-@impart_re.scheduled_job("cron", hour=0, minute=0)
+@impart_re.scheduled_job("cron", hour=0, minute=1)
 async def impart_re_():
     impart_pk.re_data()
     xu_world.re_data()
@@ -56,7 +56,7 @@ async def impart_pk_project_(bot: Bot, event: GroupMessageEvent):
     user_id = user_info['user_id']
     impart_data_draw = await impart_pk_check(user_id)
     if impart_data_draw is None:
-        msg = f"发生未知错误，多次尝试无果请找晓楠！"
+        msg = f"发生未知错误，多次尝试无果请找管理员！"
         if XiuConfig().img:
             pic = await get_msg_pic(f"@{event.sender.nickname}\n" + msg)
             await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment.image(pic))
@@ -99,7 +99,7 @@ async def impart_pk_list_(bot: Bot, event: GroupMessageEvent):
     user_id = user_info['user_id']
     impart_data_draw = await impart_pk_check(user_id)
     if impart_data_draw is None:
-        msg = f"发生未知错误，多次尝试无果请找晓楠！"
+        msg = f"发生未知错误，多次尝试无果请找管理员！"
         if XiuConfig().img:
             pic = await get_msg_pic(f"@{event.sender.nickname}\n" + msg)
             await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment.image(pic))
@@ -162,7 +162,7 @@ async def impart_pk_now_(bot: Bot, event: GroupMessageEvent, args: Message = Com
     sql_message.update_last_check_info_time(user_id)  # 更新查看修仙信息时间
     impart_data_draw = await impart_pk_check(user_id)
     if impart_data_draw is None:
-        msg = f"发生未知错误，多次尝试无果请找晓楠！"
+        msg = f"发生未知错误，多次尝试无果请找管理员！"
         if XiuConfig().img:
             pic = await get_msg_pic(f"@{event.sender.nickname}\n" + msg)
             await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment.image(pic))
@@ -192,15 +192,15 @@ async def impart_pk_now_(bot: Bot, event: GroupMessageEvent, args: Message = Com
             duel_count += 1
             msg, win = await impart_pk_uitls.impart_pk_now_msg_to_bot(user_info['user_name'], NICKNAME)
             if win == 1:
-                msg += f"战报：道友{user_info['user_name']}获胜,获得思恋结晶10颗\n"
+                msg += f"战报：道友{user_info['user_name']}获胜,获得传承抽卡2次\n"
                 impart_pk.update_user_data(user_info['user_id'], True)
-                xiuxian_impart.update_stone_num(10, user_id, 1)
-                player_1_stones += 10
+                xiuxian_impart.update_stone_num(2, user_id, 1)
+                player_1_stones += 2
             elif win == 2:
-                msg += f"战报：道友{user_info['user_name']}败了,消耗一次次数,获得思恋结晶5颗\n"
+                msg += f"战报：道友{user_info['user_name']}败了,消耗一次次数,获得传承抽卡1次\n"
                 impart_pk.update_user_data(user_info['user_id'], False)
-                xiuxian_impart.update_stone_num(5, user_id, 1)
-                player_1_stones += 5
+                xiuxian_impart.update_stone_num(1, user_id, 1)
+                player_1_stones += 1
                 if impart_pk.find_user_data(user_id)["pk_num"] <= 0 and xu_world.check_xu_world_user_id(user_id) is True:
                     msg += "检测到道友次数已用尽，已帮助道友退出虚神界！"
                     xu_world.del_xu_world(user_id)
@@ -212,7 +212,7 @@ async def impart_pk_now_(bot: Bot, event: GroupMessageEvent, args: Message = Com
             combined_msg += f"☆------------第{duel_count}次------------☆\n{msg}\n"
             user_data = impart_pk.find_user_data(user_info['user_id'])
 
-        combined_msg += f"总计：道友{user_info['user_name']}获得思恋结晶{player_1_stones}颗\n"
+        combined_msg += f"总计：道友{user_info['user_name']}获得传承抽卡{player_1_stones}次\n"
 
         if XiuConfig().img:
             pic = await get_msg_pic(f"@{event.sender.nickname}\n" + combined_msg)
@@ -267,14 +267,14 @@ async def impart_pk_now_(bot: Bot, event: GroupMessageEvent, args: Message = Com
         if win == 1:  # 1号玩家胜利 发起者
             impart_pk.update_user_data(player_1, True)
             impart_pk.update_user_data(player_2, False)
-            xiuxian_impart.update_stone_num(10, player_1, 1)
-            xiuxian_impart.update_stone_num(5, player_2, 1)
-            player_1_stones += 10
-            player_2_stones += 5
+            xiuxian_impart.update_stone_num(2, player_1, 1)
+            xiuxian_impart.update_stone_num(1, player_2, 1)
+            player_1_stones += 2
+            player_2_stones += 1
             msg_list.append(
                 {"type": "node", "data": {"name": f"虚神界战报", "uin": bot.self_id,
-                                          "content": f"道友{player_1_name}获得了胜利,获得了思恋结晶10!\n"
-                                                     f"道友{player_2_name}获得败了,消耗一次次数,获得了思恋结晶5颗!"}})
+                                          "content": f"道友{player_1_name}获得了胜利,获得了传承抽卡2!\n"
+                                                     f"道友{player_2_name}获得败了,消耗一次次数,获得了传承抽卡1次!"}})
             if impart_pk.find_user_data(player_2)["pk_num"] <= 0:
                 msg_list.append(
                     {"type": "node", "data": {"name": f"虚神界变更", "uin": bot.self_id,
@@ -285,14 +285,14 @@ async def impart_pk_now_(bot: Bot, event: GroupMessageEvent, args: Message = Com
         elif win == 2:  # 2号玩家胜利 被挑战者
             impart_pk.update_user_data(player_2, True)
             impart_pk.update_user_data(player_1, False)
-            xiuxian_impart.update_stone_num(10, player_2, 1)
-            xiuxian_impart.update_stone_num(5, player_1, 1)
-            player_2_stones += 10
-            player_1_stones += 5
+            xiuxian_impart.update_stone_num(2, player_2, 1)
+            xiuxian_impart.update_stone_num(1, player_1, 1)
+            player_2_stones += 2
+            player_1_stones += 1
             msg_list.append(
                 {"type": "node", "data": {"name": f"虚神界战报", "uin": bot.self_id,
-                                          "content": f"道友{player_2_name}获得了胜利,获得了思恋结晶10颗!\n"
-                                                     f"道友{player_1_name}获得败了,消耗一次次数,获得了思恋结晶5颗!"}})
+                                          "content": f"道友{player_2_name}获得了胜利,获得了传承抽卡2次!\n"
+                                                     f"道友{player_1_name}获得败了,消耗一次次数,获得了传承抽卡1次!"}})
             if impart_pk.find_user_data(player_1)["pk_num"] <= 0:
                 msg_list.append(
                     {"type": "node", "data": {"name": f"虚神界变更", "uin": bot.self_id,
@@ -312,7 +312,7 @@ async def impart_pk_now_(bot: Bot, event: GroupMessageEvent, args: Message = Com
 
         user_data = impart_pk.find_user_data(user_info['user_id'])
 
-    combined_msg += f"总计：道友{player_1_name}获得思恋结晶{player_1_stones}颗, 道友{player_2_name}获得思恋结晶{player_2_stones}颗\n"
+    combined_msg += f"总计：道友{player_1_name}获得传承抽卡{player_1_stones}次, 道友{player_2_name}获得传承抽卡{player_2_stones}次\n"
 
     if XiuConfig().img:
         pic = await get_msg_pic(f"@{event.sender.nickname}\n" + combined_msg)
@@ -341,7 +341,7 @@ async def impart_pk_exp_(bot: Bot, event: GroupMessageEvent, args: Message = Com
     user_id = user_info['user_id']
     impart_data_draw = await impart_pk_check(user_id)
     if impart_data_draw is None:
-        msg = f"发生未知错误，多次尝试无果请找晓楠！"
+        msg = f"发生未知错误，多次尝试无果请找管理员！"
         if XiuConfig().img:
             pic = await get_msg_pic(f"@{event.sender.nickname}\n" + msg)
             await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment.image(pic))
@@ -369,6 +369,14 @@ async def impart_pk_exp_(bot: Bot, event: GroupMessageEvent, args: Message = Com
         else:
             await bot.send_group_msg(group_id=int(send_group_id), message=msg)
         await impart_pk_exp.finish()
+    if user_info['root_type'] == '伪灵根':
+        msg = f"器师无法进行修炼!"
+        if XiuConfig().img:
+            pic = await get_msg_pic(f"@{event.sender.nickname}\n" + msg)
+            await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment.image(pic))
+        else:
+            await bot.send_group_msg(group_id=int(send_group_id), message=msg)
+        await impart_pk_exp.finish()        
     # 闭关时长计算(分钟)
     level_rate = sql_message.get_root_rate(user_info['root_type'])  # 灵根倍率
     realm_rate = jsondata.level_data()[level]["spend"]  # 境界倍率
@@ -377,7 +385,7 @@ async def impart_pk_exp_(bot: Bot, event: GroupMessageEvent, args: Message = Com
     mainbuffratebuff = mainbuffdata['ratebuff'] if mainbuffdata is not None else 0  # 功法修炼倍率
     mainbuffcloexp = mainbuffdata['clo_exp'] if mainbuffdata != None else 0  # 功法闭关经验
     mainbuffclors = mainbuffdata['clo_rs'] if mainbuffdata != None else 0  # 功法闭关回复
-    exp = int((int(impaer_exp_time) * XiuConfig().closing_exp) * ((level_rate * realm_rate * (1 + mainbuffratebuff) * (1 + mainbuffcloexp))))  # 本次闭关获取的修为
+    exp = int((int(impaer_exp_time) // 2 * XiuConfig().closing_exp) * ((level_rate * realm_rate * (1 + mainbuffratebuff) * (1 + mainbuffcloexp))))  # 本次闭关获取的修为
     max_exp = int((int(OtherSet().set_closing_type(user_info['level'])) * XiuConfig().closing_exp_upper_limit))  # 获取下个境界需要的修为 * 1.5为闭关上限
     if 0 < int(user_info['exp'] + exp) < max_exp:
         xiuxian_impart.use_impart_exp_day(impaer_exp_time, user_id)
@@ -385,7 +393,7 @@ async def impart_pk_exp_(bot: Bot, event: GroupMessageEvent, args: Message = Com
         sql_message.update_power2(user_id)  # 更新战力
         result_msg, result_hp_mp = OtherSet().send_hp_mp(user_id, int(exp * hp_speed * (1 + mainbuffclors)), int(exp * mp_speed))
         sql_message.update_user_attribute(user_id, result_hp_mp[0], result_hp_mp[1], int(result_hp_mp[2] / 10))
-        msg = f"虚神界修炼结束，共修炼{impaer_exp_time}分钟，本次闭关增加修为：{exp}{result_msg[0]}{result_msg[1]}"
+        msg = f"虚神界修炼结束，共修炼{impaer_exp_time}分钟，本次闭关增加修为：{exp} {result_msg[0]} {result_msg[1]}"
         if XiuConfig().img:
             pic = await get_msg_pic(f"@{event.sender.nickname}\n" + msg)
             await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment.image(pic))

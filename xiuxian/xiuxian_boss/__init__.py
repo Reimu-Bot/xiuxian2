@@ -28,7 +28,7 @@ from ..xiuxian_utils.xiuxian2_handle import (
     XIUXIAN_IMPART_BUFF, leave_harm_time
 )
 from ..xiuxian_config import convert_rank, XiuConfig, JsonConfig
-from .makeboss import createboss, createboss_jj
+from .makeboss import createboss, createboss_jj, create_boss_for_level
 from .bossconfig import get_boss_config, savef_boss
 from .old_boss_info import old_boss_info
 from ..xiuxian_utils.player_fight import Boss_fight
@@ -36,7 +36,7 @@ from ..xiuxian_utils.item_json import Items
 items = Items()
 from ..xiuxian_utils.utils import (
     number_to, check_user, markdown,
-    get_msg_pic, CommandObjectID,
+    get_msg_pic, CommandObjectID, check_user_type,
     pic_msg_format, send_msg_handler
 )
 from .. import DRIVER
@@ -46,6 +46,7 @@ from nonebot_plugin_apscheduler import scheduler
 
 conf_data = JsonConfig().read_data()
 config = get_boss_config()
+dungeonlist = config['dungeonboss']
 cache_help = {}
 del_boss_id = XiuConfig().del_boss_id
 gen_boss_id = XiuConfig().gen_boss_id
@@ -88,14 +89,17 @@ set_group_boss = on_command("妖界boss", aliases={"妖界Boss", "妖界BOSS"}, 
                             permission=GROUP and (SUPERUSER | GROUP_ADMIN | GROUP_OWNER), block=True)
 battle = on_command("ss讨伐boss", aliases={"讨伐妖界boss", "ss讨伐Boss", "ss讨伐BOSS", "ss讨伐妖界Boss", "ss讨伐妖界BOSS"}, priority=6,
                     permission=GROUP, block=True)
-boss_help = on_command("妖界boss帮助", aliases={"妖界Boss帮助", "妖界BOSS帮助"}, priority=5, block=True)
+boss_help = on_command("妖界boss帮助", aliases={"妖界Boss帮助", "妖界BOSS帮助", "除妖"}, priority=5, block=True)
+pokemon_pk_dungeon = on_command("ccc挑战妖界塔", aliases={"ccc讨伐妖界塔", "ccc妖界塔挑战"}, priority=6, permission=GROUP, block=True)  
+xiuxian_dungeon_info = on_command("妖界塔信息", aliases={"我的妖界塔信息"}, priority=6, permission=GROUP, block=True)  
+boss_battle = on_command("挑战武神塔", aliases={"武神塔挑战", "武神塔"}, priority=5, block=True)
 boss_delete = on_command("ss天罚boss", aliases={"ss天罚妖界boss", "ss天罚Boss", "ss天罚BOSS", "ss天罚妖界Boss", "ss天罚妖界BOSS"}, priority=7,
                          rule=check_rule_bot_boss(), block=True)
 boss_delete_all = on_command("ss天罚所有boss", aliases={"ss天罚所有妖界boss", "ss天罚所有Boss", "ss天罚所有BOSS", "ss天罚所有妖界Boss","ss天罚所有妖界BOSS",
                                                   "ss天罚全部boss", "ss天罚全部妖界boss"}, priority=5,
                              rule=check_rule_bot_boss(), block=True)
-boss_integral_info = on_command("妖界灵气查看",aliases={"查看妖界灵气", "妖界灵气商店", "妖界商店"} ,priority=10, permission=GROUP, block=True)
-boss_integral_use = on_command("妖界灵气兑换", priority=6, permission=GROUP, block=True)
+boss_integral_info = on_command("灵气查看",aliases={"查看灵气", "灵气商店", "妖界商店"} ,priority=10, permission=GROUP, block=True)
+boss_integral_use = on_command("灵气兑换", priority=6, permission=GROUP, block=True)
 
 boss_time = config["Boss生成时间参数"]
 __boss_help__ = f"""
@@ -103,10 +107,12 @@ __boss_help__ = f"""
 \n>妖风四起，邪气弥漫！各地妖怪横生，苦不堪言。为维护人间安宁，守护天地正义，特召各路道友，共赴除妖降魔之战！击败Boss可获得灵气，收集灵气可兑换各种稀有道具~
 \n><qqbot-cmd-input text="查询妖界boss" show="查询妖界boss" reference="false" /> 查询全部妖界Boss,可加Boss编号查询对应Boss信息
 \n><qqbot-cmd-input text="讨伐妖界boss" show="讨伐妖界boss" reference="false" /> 讨伐妖界Boss,必须加Boss编号
+\n><qqbot-cmd-input text="武神塔挑战" show="武神塔挑战" reference="false" /> 挑战武神塔，获取灵气，按道友境界生成boss
+\n><qqbot-cmd-input text="妖界塔挑战" show="妖界塔挑战" reference="false" /> 挑战妖界塔，获取灵气，每层boss由弱到强（测试中，没有奖励）
 \n><qqbot-cmd-input text="妖界boss" show="妖界boss帮助" reference="false" /> 获取妖界Boss帮助信息
-\n><qqbot-cmd-input text="妖界商店" show="妖界商店" reference="false" /> 查看妖界商店的商品
-\n><qqbot-cmd-input text="妖界灵气兑换" show="妖界灵气兑换" reference="false" /> 兑换对应的商品，可以批量购买
-\n>每天上午九时生成30-40只随机大境界的妖界Boss
+\n><qqbot-cmd-input text="灵气商店" show="灵气商店" reference="false" /> 查看灵气商店的商品
+\n><qqbot-cmd-input text="灵气兑换" show="灵气兑换" reference="false" /> 兑换对应的商品，可以批量购买
+\n>每天下午二时生成50-60只随机大境界的妖界Boss
 """.strip()
 
 
@@ -137,7 +143,7 @@ async def save_boss_():
     old_boss_info.save_boss(group_boss)
     logger.opt(colors=True).info(f"<green>boss数据已保存</green>")
 
-@scheduler.scheduled_job("cron", hour=9, minute=0)  # 每天上午9点执行
+@scheduler.scheduled_job("cron", hour=13, minute=59)  # 每天上午9点执行
 async def generate_daily_bosses():
     """定时生成世界Boss"""
     group_id = 'worldboss'
@@ -153,6 +159,22 @@ async def generate_daily_bosses():
 
     logger.opt(colors=True).info(f"<green>已刷新妖界boss</green>")
 
+@scheduler.scheduled_job("cron", hour="*/3", minute=59)  # 每3个小时刷新
+async def generate_world_bosses():
+    """定时生成世界 Boss，每个境界生成一个"""
+    group_id = 'bigboss'
+    group_boss[group_id] = []  # 清空列表，准备刷新 Boss
+    new_bosses = []  # 存储生成的新 Boss
+
+    for boss_jj in config["Boss灵石"].keys():  # 按境界顺序从高到低生成
+        boss_info = create_boss_for_level(boss_jj)  # 为当前境界生成 Boss
+        new_bosses.append(boss_info)
+        group_boss[group_id].append(boss_info)
+        old_boss_info.save_boss(boss_info)  # 保存 Boss 数据到数据库或文件
+
+    # 记录生成日志
+    logger.opt(colors=True).info(f"<green>已生成妖界武神塔Boss</green>：{len(new_bosses)} 个")
+
 @boss_help.handle(parameterless=[Cooldown(at_sender=False)])
 async def boss_help_(bot: Bot, event: GroupMessageEvent, session_id: int = CommandObjectID()):
     bot, send_group_id = await assign_bot(bot=bot, event=event)
@@ -167,6 +189,221 @@ async def boss_help_(bot: Bot, event: GroupMessageEvent, session_id: int = Comma
     await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
     await boss_help.finish()
 
+
+@xiuxian_dungeon_info.handle(parameterless=[Cooldown(at_sender=False)])
+async def xiuxian_dungeon_info_(bot: Bot, event: GroupMessageEvent):
+    bot, send_group_id = await assign_bot(bot=bot, event=event)
+    isUser, user_info, msg = check_user(event)
+    if not isUser:
+        params_items = [('msg', msg)]               
+        buttons = [
+            [(2, '我要修仙', '我要修仙', True)],                  
+        ]
+       # 调用 markdown 函数生成数据
+        data = await markdown(params_items, buttons)
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
+        await xiuxian_dungeon_info.finish()
+
+    user_id = user_info['user_id']
+    is_type, msg = check_user_type(user_id, 0)  # 需要无状态的用户
+    if not is_type:
+        params_items = [('msg', msg)]               
+        buttons = []
+       # 调用 markdown 函数生成数据
+        data = await markdown(params_items, buttons)
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
+        await xiuxian_dungeon_info.finish()   
+    my_dungeon_info = sql_message.get_dungeon_info(user_id)
+    my_dungeon_num = my_dungeon_info[0]  
+    dungeon_str = str(my_dungeon_num + 1)
+    bossinfo = dungeonlist[dungeon_str]['bossinfo']
+    
+    msg = f"""
+道友当前在{my_dungeon_num}层
+下层boss名字：{bossinfo['name']}
+气血：{bossinfo['总血量']}
+真元：{bossinfo['真元']}
+攻击：{bossinfo['攻击']} 
+"""    
+    params_items = [('msg', msg)]               
+    buttons = [            
+        [(2, '我的妖界塔信息', '妖界塔信息', True), (2, '挑战妖界塔', '挑战妖界塔', True)],
+    ]
+    data = await markdown(params_items, buttons)
+    await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data}))  
+    await xiuxian_dungeon_info.finish()
+
+@pokemon_pk_dungeon.handle(parameterless=[Cooldown(stamina_cost = 20, at_sender=False)])
+async def pokemon_pk_dungeon_(bot: Bot, event: GroupMessageEvent):
+    bot, send_group_id = await assign_bot(bot=bot, event=event)
+    isUser, user_info, msg = check_user(event)
+    if not isUser:
+        params_items = [('msg', msg)]               
+        buttons = [
+            [(2, '我要修仙', '我要修仙', True)],                  
+        ]
+       # 调用 markdown 函数生成数据
+        data = await markdown(params_items, buttons)
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
+        await pokemon_pk_dungeon.finish()
+
+    user_id = user_info['user_id']
+    is_type, msg = check_user_type(user_id, 0)  # 需要无状态的用户
+    if not is_type:
+        params_items = [('msg', msg)]               
+        buttons = []
+       # 调用 markdown 函数生成数据
+        data = await markdown(params_items, buttons)
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
+        await pokemon_pk_dungeon.finish() 
+    my_dungeon_info = sql_message.get_dungeon_info(user_id)
+    if my_dungeon_info == 0:
+        sql_message.new_dungeon(user_id)
+    else: 
+        my_dungeon_num = my_dungeon_info[0]
+        if my_dungeon_num == 11:
+            msg = f'道友已经完成妖界塔试炼，请下周再来挑战吧'
+            params_items = [('msg', msg)]               
+            buttons = [
+                [(2, '修炼', '修炼', True), (2, '闭关', '闭关', True)],    
+                [(2, '灵气商店', '灵气商店', True)],                 
+            ]
+           # 调用 markdown 函数生成数据
+            data = await markdown(params_items, buttons)
+            await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
+            await pokemon_pk_dungeon.finish()        
+    if user_info['hp'] is None or user_info['hp'] == 0:
+        # 判断用户气血是否为空
+        if user_info['root_type'] == '轮回道果':
+            sql_message.update_user_hp2(user_id) 
+        elif user_info['root_type'] == '真·轮回道果':
+            sql_message.update_user_hp3(user_id)
+        else:
+            sql_message.update_user_hp(user_id) 
+
+    if user_info['hp'] <= user_info['exp'] / 10:
+        time = leave_harm_time(user_id)
+        sql_message.update_user_stamina(user_id, 20, 1)
+        msg = f"重伤未愈，动弹不得！距离脱离危险还需要{time}分钟！\n"
+        msg += f"请道友进行闭关，或者使用药品恢复气血，不要干等，没有自动回血！！！"
+        params_items = [('msg', msg)]               
+        buttons = [
+            [(2, '修炼', '修炼', True), (2, '闭关', '闭关', True)],    
+            [(2, '灵气商店', '灵气商店', True)],                 
+        ]
+       # 调用 markdown 函数生成数据
+        data = await markdown(params_items, buttons)
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
+        await pokemon_pk_dungeon.finish()
+
+    player = {"user_id": None, "道号": None, "气血": None, "攻击": None, "真元": None, '会心': None, '防御': 0}
+    userinfo = sql_message.get_user_real_info(user_id)
+    user_weapon_data = UserBuffDate(userinfo['user_id']).get_user_weapon_data()
+
+    impart_data = xiuxian_impart.get_user_impart_info_with_id(user_id)
+    boss_atk = impart_data['boss_atk'] if impart_data['boss_atk'] is not None else 0
+    user_armor_data = UserBuffDate(userinfo['user_id']).get_user_armor_buff_data() #boss战防具会心
+    user_main_data = UserBuffDate(userinfo['user_id']).get_user_main_buff_data() #boss战功法会心
+    user1_sub_buff_data = UserBuffDate(userinfo['user_id']).get_user_sub_buff_data() #boss战辅修功法信息
+    integral_buff = user1_sub_buff_data['integral'] if user1_sub_buff_data is not None else 0
+    exp_buff = user1_sub_buff_data['exp'] if user1_sub_buff_data is not None else 0
+    
+    if  user_main_data != None: #boss战功法会心
+        main_crit_buff = user_main_data['crit_buff']
+    else:
+        main_crit_buff = 0
+  
+    if  user_armor_data != None: #boss战防具会心
+        armor_crit_buff = user_armor_data['crit_buff']
+    else:
+        armor_crit_buff = 0
+    
+    if user_weapon_data != None:
+        player['会心'] = int(((user_weapon_data['crit_buff']) + (armor_crit_buff) + (main_crit_buff)) * 100)
+    else:
+        player['会心'] = (armor_crit_buff + main_crit_buff) * 100
+    player['user_id'] = userinfo['user_id']
+    player['道号'] = userinfo['user_name']
+    player['气血'] = userinfo['hp']
+    player['攻击'] = int(userinfo['atk'] * (1 + boss_atk))
+    player['真元'] = userinfo['mp']
+    player['exp'] = userinfo['exp']    
+
+    dungeon_str = str(my_dungeon_num + 1)
+    bossinfo = dungeonlist[dungeon_str]['bossinfo']
+    print(bossinfo)
+    name_list = list(bossinfo['name'])  # 将集合转换为列表
+    selected_name = random.choice(name_list)  # 随机选择一个名字
+    bossinfo['name'] = selected_name     
+    if bossinfo['jj'] == '零':
+        boss_rank = convert_rank((bossinfo['jj']))[0]
+    else:
+        boss_rank = convert_rank((bossinfo['jj'] + '中期'))[0]
+    user_rank = convert_rank(userinfo['level'])[0]
+       
+    msg = f'#第{dungeon_str}层'
+    result, victor, bossinfo_new, get_stone = await Boss_fight(player, bossinfo, bot_id=bot.self_id)
+    if victor == "Boss赢了": 
+       # sql_message.update_ls(user_id, get_stone, 1)
+        # 新增boss战斗灵气点数
+        boss_now_hp = bossinfo['总血量']  # 打之后的血量
+        boss_all_hp = bossinfo['总血量']  # 总血量
+        #boss_integral = dungeonlist[dungeon_str]['firstreward']['score']
+        if boss_integral < 5:  # 摸一下不给
+            boss_integral = 0
+        if user_info['root'] == "器师":
+            boss_integral = int(boss_integral * 1.5)
+
+       # sql_message.update_boss_score(user_id, boss_integral, 1)
+        sql_message.update_dungeon(user_id, my_dungeon_num, 1)            
+        msg_content = '\n'.join([node['data']['content'] for node in result if 'content' in node['data']])
+        msg += f"```\n{msg_content}\n```"
+        params_items = [('msg', msg)] 
+        buttons = []
+       # 调用 markdown 函数生成数据
+        data = await markdown(params_items, buttons)
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data}))         
+        msg1 = f"道友挑战妖界塔第{dungeon_str}层挑战失败，差点被抓进塔里蹂躏，勉强逃脱。 "
+        if user_info['root'] == "器师" and boss_integral < 0:
+            msg1 = f"\n如果出现负灵气，说明你境界太高了，玩器师就不要那么高境界了！！！"        
+        params_items = [('msg', msg1)] 
+        buttons = [
+            [(2, '继续挑战', '挑战妖界塔', False)], 
+            [(2, '查看妖界塔信息', '妖界塔信息', True)],            
+        ]
+       # 调用 markdown 函数生成数据
+        data = await markdown(params_items, buttons)
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
+        await battle.finish()
+    
+    elif victor == "群友赢了":
+        # 新增boss战斗灵气点数
+        boss_all_hp = bossinfo['总血量']  # 总血量
+        boss_integral = dungeonlist[dungeon_str]['firstreward']['score']
+        if user_info['root'] == "器师":
+            boss_integral = int(boss_integral * 1.5)                         
+       # sql_message.update_ls(user_id, get_stone, 1)
+        sql_message.update_boss_score(user_id, boss_integral, 1)
+        sql_message.update_dungeon(user_id, int(dungeon_str), 1)
+        msg_content = '\n'.join([node['data']['content'] for node in result if 'content' in node['data']])
+        msg = f"```\n{msg_content}\n```"
+        params_items = [('msg', msg)] 
+        buttons = []
+       # 调用 markdown 函数生成数据
+        data = await markdown(params_items, buttons)
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data}))         
+        msg2 = f"恭喜道友跨越第{dungeon_str}层 \n获得灵气{boss_integral}\n第{my_dungeon_num + 2}层的神秘之门已然开启。"
+        if user_info['root'] == "器师" and boss_integral < 0:
+           msg2 += f"\n如果出现负灵气，说明你这器师境界太高了(如果总妖界灵气为负数，会帮你重置成0)，玩器师就不要那么高境界了！！！"        
+        params_items = [('msg', msg2)] 
+        buttons = [
+            [(2, '继续挑战', '挑战妖界塔', False)], 
+            [(2, '查看妖界塔信息', '妖界塔信息', True)],             
+        ]
+       # 调用 markdown 函数生成数据
+        data = await markdown(params_items, buttons)
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
+        await pokemon_pk_dungeon.finish()
 
 @boss_delete.handle(parameterless=[Cooldown(at_sender=False)])
 async def boss_delete_(bot: Bot, event: GroupMessageEvent, args: Message = CommandArg()):
@@ -264,6 +501,236 @@ async def boss_delete_all_(bot: Bot, event: GroupMessageEvent, args: Message = C
         await bot.send_group_msg(group_id=int(send_group_id), message=msg)
     await boss_delete_all.finish()
 
+@boss_battle.handle(parameterless=[Cooldown(stamina_cost = 20, at_sender=False)])
+async def boss_battle_(bot: Bot, event: GroupMessageEvent):
+    """讨伐世界boss"""
+    bot, send_group_id = await assign_bot(bot=bot, event=event)
+    isUser, user_info, msg = check_user(event)
+    if not isUser:
+        params_items = [('msg', msg)]               
+        buttons = [
+            [(2, '我要修仙', '我要修仙', True)],                  
+        ]
+       # 调用 markdown 函数生成数据
+        data = await markdown(params_items, buttons)
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
+        await boss_battle.finish()
+
+    user_id = user_info['user_id']
+    user_level = user_info['level'][:3]
+    sql_message.update_last_check_info_time(user_id) # 更新查看修仙信息时间
+    group_id = "bigboss"
+    try:
+        bosss_list = group_boss[group_id]
+      #  print(bosss_list)
+    except:
+        msg = f"尚未生成武神塔,请等待武神塔刷新!"
+        sql_message.update_user_stamina(user_id, 20, 1)
+        params_items = [('msg', msg)]               
+        buttons = [  
+            [(2, '灵气商店', '灵气商店', True)],                 
+        ]
+       # 调用 markdown 函数生成数据
+        data = await markdown(params_items, buttons)
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
+        await boss_battle.finish()
+   # bossinfo = None
+    bossinfo = next((boss for boss in bosss_list if boss["jj"] == user_level), None)
+   # print(bossinfo)
+    if bossinfo is None or bossinfo["气血"] <= 0:
+        msg = f"本境界BOSS已被净化，曾经的压迫与困扰烟消云散。你已顺利渡过此劫，体内的灵气更加充盈，接下来的战斗将是对你道心的进一步磨砺。"
+        sql_message.update_user_stamina(user_id, 20, 1)
+        params_items = [('msg', msg)]               
+        buttons = [ 
+            [(2, '灵气商店', '灵气商店', True)],                 
+        ]
+       # 调用 markdown 函数生成数据
+        data = await markdown(params_items, buttons)
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
+        await boss_battle.finish()
+    if bossinfo['jj'] == '零':
+        boss_rank = convert_rank((bossinfo['jj']))[0]
+    else:
+        boss_rank = convert_rank((bossinfo['jj'] + '中期'))[0]
+    user_rank = convert_rank(user_info['level'])[0]
+    if user_info['hp'] is None or user_info['hp'] == 0:
+        # 判断用户气血是否为空
+        if user_info['root_type'] == '轮回道果':
+            sql_message.update_user_hp2(user_id) 
+        elif user_info['root_type'] == '真·轮回道果':
+            sql_message.update_user_hp3(user_id)
+        else:
+            sql_message.update_user_hp(user_id) 
+
+    if user_info['hp'] <= user_info['exp'] / 10:
+        time = leave_harm_time(user_id)
+        msg = f"重伤未愈，动弹不得！距离脱离危险还需要{time}分钟！\n"
+        msg += f"请道友进行闭关，或者使用药品恢复气血，不要干等，没有自动回血！！！"
+        sql_message.update_user_stamina(user_id, 20, 1)
+        params_items = [('msg', msg)]               
+        buttons = [
+            [(2, '修炼', '修炼', True), (2, '闭关', '闭关', True)],                   
+        ]
+       # 调用 markdown 函数生成数据
+        data = await markdown(params_items, buttons)
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
+        await boss_battle.finish()
+
+    msg = f"道友的境界是{user_info['level']},挑战的武神塔Boss为：\nBoss名称：{bossinfo['name']} \nBoss境界：{bossinfo['jj']} \nBoss血量：{number_to(bossinfo['气血'])} / {number_to(bossinfo['总血量'])} \nBoss攻击：{number_to(bossinfo['攻击'])} \nBoss真元：{number_to(bossinfo['真元'])}"
+    params_items = [('msg', msg)]               
+    buttons = []
+   # 调用 markdown 函数生成数据
+    data = await markdown(params_items, buttons)
+    await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
+
+    player = {"user_id": None, "道号": None, "气血": None, "攻击": None, "真元": None, '会心': None, '防御': 0}
+    userinfo = sql_message.get_user_real_info(user_id)
+    user_weapon_data = UserBuffDate(userinfo['user_id']).get_user_weapon_data()
+
+    impart_data = xiuxian_impart.get_user_impart_info_with_id(user_id)
+    boss_atk = impart_data['boss_atk'] if impart_data['boss_atk'] is not None else 0
+    user_armor_data = UserBuffDate(userinfo['user_id']).get_user_armor_buff_data() #boss战防具会心
+    user_main_data = UserBuffDate(userinfo['user_id']).get_user_main_buff_data() #boss战功法会心
+    user1_sub_buff_data = UserBuffDate(userinfo['user_id']).get_user_sub_buff_data() #boss战辅修功法信息
+    integral_buff = user1_sub_buff_data['integral'] if user1_sub_buff_data is not None else 0
+    exp_buff = user1_sub_buff_data['exp'] if user1_sub_buff_data is not None else 0
+    
+    if  user_main_data != None: #boss战功法会心
+        main_crit_buff = user_main_data['crit_buff']
+    else:
+        main_crit_buff = 0
+  
+    if  user_armor_data != None: #boss战防具会心
+        armor_crit_buff = user_armor_data['crit_buff']
+    else:
+        armor_crit_buff = 0
+    
+    if user_weapon_data != None:
+        player['会心'] = int(((user_weapon_data['crit_buff']) + (armor_crit_buff) + (main_crit_buff)) * 100)
+    else:
+        player['会心'] = (armor_crit_buff + main_crit_buff) * 100
+    player['user_id'] = userinfo['user_id']
+    player['道号'] = userinfo['user_name']
+    player['气血'] = userinfo['hp']
+    player['攻击'] = int(userinfo['atk'] * (1 + boss_atk))
+    player['真元'] = userinfo['mp']
+    player['exp'] = userinfo['exp']
+    sacred_score = 4800
+    realm_scores = {
+        # 圣祭境以下
+        '搬血境': int(sacred_score * 0.7**6),
+        '洞天境': int(sacred_score * 0.7**5),
+        '化灵境': int(sacred_score * 0.7**4),
+        '铭纹境': int(sacred_score * 0.7**3),
+        '列阵境': int(sacred_score * 0.7**2),
+        '尊者境': int(sacred_score * 0.7),
+        '圣祭境': sacred_score,
+        # 圣祭境以上
+        '天神境': int(sacred_score * 1.25),
+        '虚道境': int(sacred_score * 1.25**2),
+        '斩我境': int(sacred_score * 1.25**3),
+        '遁一境': int(sacred_score * 1.25**4),
+        '至尊境': int(sacred_score * 1.25**5),
+        '真仙境': int(sacred_score * 1.25**6),
+        '仙王境': int(sacred_score * 1.25**7),
+        '准帝境': int(sacred_score * 1.25**8),
+        '仙帝境': int(sacred_score * 1.25**9),
+        '祭道境': int(sacred_score * 1.25**10),
+    }
+
+    base_score = realm_scores.get(user_level, sacred_score)         
+    boss_old_hp = bossinfo['气血']  # 打之前的血量
+    more_msg = ''
+    battle_flag[group_id] = True
+    result, victor, bossinfo_new, get_stone = await Boss_fight(player, bossinfo, bot_id=bot.self_id)
+    if victor == "Boss赢了":
+        sql_message.update_ls(user_id, get_stone, 1)
+        # 新增boss战斗灵气点数
+       # sql_message.update_user_stamina(user_id, 20, 2)
+        boss_now_hp = bossinfo_new['气血']  # 打之后的血量
+        boss_all_hp = bossinfo['总血量']  # 总血量
+        boss_integral = int(((boss_old_hp - boss_now_hp) / boss_all_hp) * base_score)
+        if user_info['root'] == "器师":
+            boss_integral = int(boss_integral)
+            points_bonus = 80 
+            more_msg = f"道友的职业是器师，获得{points_bonus}灵气加成！"
+
+        top_user_info = sql_message.get_top1_user()
+        top_user_exp = top_user_info['exp']
+        sql_message.update_boss_score(user_id, boss_integral, 1)
+        
+        if exp_buff > 0 and user_info['root'] != "器师":
+            now_exp = int(((top_user_exp * 0.1) / user_info['exp']) / (exp_buff * (1 / (convert_rank(user_info['level'])[0] + 1))))
+            if now_exp > 1000000:
+                now_exp = int(1000000 / random.randint(5, 10))
+            sql_message.update_exp(user_id, now_exp)
+            exp_msg = f"，获得修为{int(now_exp)}点！"
+        else:
+            exp_msg = f" "
+            
+        battle_flag[group_id] = False
+        msg_content = '\n'.join([node['data']['content'] for node in result if 'content' in node['data']])
+        msg = f"```\n{msg_content}\n```"
+        msg += f"道友不敌{bossinfo['name']}，重伤逃遁，临逃前收获灵石{get_stone}枚，{more_msg}获得妖界灵气：{boss_integral}点{exp_msg} "
+        if user_info['root'] == "器师" and boss_integral < 0:
+            msg += f"\n如果出现负灵气，说明你境界太高了，玩器师就不要那么高境界了！！！"        
+        params_items = [('msg', msg)] 
+        buttons = [
+            [(2, '挑战武神塔', '挑战武神塔', True)],            
+        ]
+       # 调用 markdown 函数生成数据
+        data = await markdown(params_items, buttons)
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
+        await boss_battle.finish()
+    
+    elif victor == "群友赢了":
+        # 新增boss战斗灵气点数
+       # sql_message.update_user_stamina(user_id, 20, 1)
+        boss_all_hp = bossinfo['总血量']  # 总血量
+        boss_integral = int((boss_old_hp / boss_all_hp) * base_score)
+        if user_info['root'] == "器师":
+            boss_integral = int(boss_integral)
+            points_bonus = 80
+            more_msg = f"道友的职业是器师，获得{points_bonus}灵气加成！"
+                
+        top_user_info = sql_message.get_top1_user()
+        top_user_exp = top_user_info['exp']
+        
+        if exp_buff > 0 and user_info['root'] != "器师":
+            now_exp = int(((top_user_exp * 0.1) / user_info['exp']) / (exp_buff * (1 / (convert_rank(user_info['level'])[0] + 1))))
+            if now_exp > 1000000:
+                now_exp = int(1000000 / random.randint(5, 10))
+            sql_message.update_exp(user_id, now_exp)
+            exp_msg = f"，获得修为{int(now_exp)}点！"
+        else:
+            exp_msg = f" "
+                
+        drops_id, drops_info =  boss_drops(user_rank, boss_rank, bossinfo, userinfo)
+        if drops_id == None:
+            drops_msg = " "
+        elif boss_rank < convert_rank('遁一境中期')[0]:           
+            drops_msg = f"boss的尸体上好像有什么东西， 凑近一看居然是{drops_info['name']}！ "
+            sql_message.send_back(user_info['user_id'], drops_info['id'],drops_info['name'], drops_info['type'], 1)
+        else :
+            drops_msg = " "
+            
+        battle_flag[group_id] = False
+        sql_message.update_ls(user_id, get_stone, 1)
+        sql_message.update_boss_score(user_id, boss_integral, 1)
+        msg_content = '\n'.join([node['data']['content'] for node in result if 'content' in node['data']])
+        msg = f"```\n{msg_content}\n```"
+        msg += f"恭喜道友击败{bossinfo['name']}，收获灵石{get_stone}枚，{more_msg}获得妖界灵气：{boss_integral}点!{exp_msg} {drops_msg}"
+        if user_info['root'] == "器师" and boss_integral < 0:
+           msg += f"\n如果出现负灵气，说明你这器师境界太高了(如果总妖界灵气为负数，会帮你重置成0)，玩器师就不要那么高境界了！！！"        
+        params_items = [('msg', msg)] 
+        buttons = [
+            [(2, '挑战武神塔', '挑战武神塔', True)],            
+        ]
+       # 调用 markdown 函数生成数据
+        data = await markdown(params_items, buttons)
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
+        await boss_battle.finish()
+
 
 @battle.handle(parameterless=[Cooldown(stamina_cost = 20, at_sender=False)])
 async def battle_(bot: Bot, event: GroupMessageEvent, args: Message = CommandArg()):
@@ -331,6 +798,7 @@ async def battle_(bot: Bot, event: GroupMessageEvent, args: Message = CommandArg
 
     if not (0 < boss_num <= index):
         msg = f"请输入正确的妖界Boss编号!"
+        sql_message.update_user_stamina(user_id, 20, 1)
         params_items = [('msg', msg)]               
         buttons = [
             [(2, '查询妖界boss', '查询妖界boss', False), (2, '讨伐妖界boss', '讨伐妖界boss', False)],    
@@ -343,7 +811,12 @@ async def battle_(bot: Bot, event: GroupMessageEvent, args: Message = CommandArg
 
     if user_info['hp'] is None or user_info['hp'] == 0:
         # 判断用户气血是否为空
-        sql_message.update_user_hp(user_id)
+        if user_info['root_type'] == '轮回道果':
+            sql_message.update_user_hp2(user_id) 
+        elif user_info['root_type'] == '真·轮回道果':
+            sql_message.update_user_hp3(user_id)
+        else:
+            sql_message.update_user_hp(user_id) 
 
     if user_info['hp'] <= user_info['exp'] / 10:
         time = leave_harm_time(user_id)
@@ -364,7 +837,7 @@ async def battle_(bot: Bot, event: GroupMessageEvent, args: Message = CommandArg
     userinfo = sql_message.get_user_real_info(user_id)
     user_weapon_data = UserBuffDate(userinfo['user_id']).get_user_weapon_data()
 
-    impart_data = xiuxian_impart.get_user_info_with_id(user_id)
+    impart_data = xiuxian_impart.get_user_impart_info_with_id(user_id)
     boss_atk = impart_data['boss_atk'] if impart_data['boss_atk'] is not None else 0
     user_armor_data = UserBuffDate(userinfo['user_id']).get_user_armor_buff_data() #boss战防具会心
     user_main_data = UserBuffDate(userinfo['user_id']).get_user_main_buff_data() #boss战功法会心
@@ -431,12 +904,12 @@ async def battle_(bot: Bot, event: GroupMessageEvent, args: Message = CommandArg
         # 新增boss战斗灵气点数
         boss_now_hp = bossinfo_new['气血']  # 打之后的血量
         boss_all_hp = bossinfo['总血量']  # 总血量
-        boss_integral = int(((boss_old_hp - boss_now_hp) / boss_all_hp) * 240)
-        if boss_integral < 5:  # 摸一下不给
-            boss_integral = 0
+        boss_integral = int(((boss_old_hp - boss_now_hp) / boss_all_hp) * 4800)
+       # if boss_integral < 5:  # 摸一下不给
+       #     boss_integral = 0
         if user_info['root'] == "器师":
-            boss_integral = int(boss_integral * (1 + (user_rank - boss_rank)))
-            points_bonus = int(80 * (user_rank - boss_rank))
+            boss_integral = int(boss_integral * (1 + 0.4 * (user_rank - boss_rank)))
+            points_bonus = int(10 * (user_rank - boss_rank))
             more_msg = f"道友低boss境界{user_rank - boss_rank}层，获得{points_bonus}%灵气加成！"
 
        # user_boss_fight_info = get_user_boss_fight_info(user_id)
@@ -473,10 +946,10 @@ async def battle_(bot: Bot, event: GroupMessageEvent, args: Message = CommandArg
     elif victor == "群友赢了":
         # 新增boss战斗灵气点数
         boss_all_hp = bossinfo['总血量']  # 总血量
-        boss_integral = int((boss_old_hp / boss_all_hp) * 240)
+        boss_integral = int((boss_old_hp / boss_all_hp) * 4800)
         if user_info['root'] == "器师":
-            boss_integral = int(boss_integral * (1 + (user_rank - boss_rank)))
-            points_bonus = int(80 * (user_rank - boss_rank))
+            boss_integral = int(boss_integral * (1 +  0.4 * (user_rank - boss_rank)))
+            points_bonus = int(10 * (user_rank - boss_rank))
             more_msg = f"道友低boss境界{user_rank - boss_rank}层，获得{points_bonus}%灵气加成！"
         else:
             if boss_rank - user_rank >= 8:  # 超过太多不给
@@ -871,7 +1344,7 @@ async def boss_integral_info_(bot: Bot, event: GroupMessageEvent):
     
     # 初始化按钮列表
     button_list = [
-        [(2, '灵气兑换', '灵气兑换', False), (2, '妖界商店', '妖界商店', True)],            
+        [(2, '灵气兑换', '灵气兑换', False), (2, '灵气商店', '灵气商店', True)],            
         [(2, '查询妖界boss', '查询妖界boss', True), (2, '查看物品效果', '查看物品效果', False)], 
     ]
 
@@ -914,7 +1387,7 @@ async def boss_integral_use_(bot: Bot, event: GroupMessageEvent, args: Message =
         msg = f"请输入正确的商品编号！"
         params_items = [('msg', msg)]               
         buttons = [
-            [(2, '妖界灵气兑换', '妖界灵气兑换', False)],            
+            [(2, '灵气兑换', '灵气兑换', False)],            
         ]
        # 调用 markdown 函数生成数据
         data = await markdown(params_items, buttons)
@@ -936,7 +1409,7 @@ async def boss_integral_use_(bot: Bot, event: GroupMessageEvent, args: Message =
         msg = f"妖界灵气商店内空空如也！"
         params_items = [('msg', msg)]               
         buttons = [
-            [(2, '妖界灵气兑换', '妖界灵气兑换', False)],            
+            [(2, '灵气兑换', '灵气兑换', False)],            
         ]
        # 调用 markdown 函数生成数据
         data = await markdown(params_items, buttons)
@@ -946,10 +1419,10 @@ async def boss_integral_use_(bot: Bot, event: GroupMessageEvent, args: Message =
         user_boss_score = sql_message.get_user_boss_score(user_id)
         total_cost = cost * quantity
         if user_boss_score['boss_integral'] < total_cost:
-            msg = f"道友的妖界灵气不满足兑换条件呢"
+            msg = f"道友的灵气不满足兑换条件呢"
             params_items = [('msg', msg)]
             buttons = [
-                [(2, '妖界灵气兑换', '妖界灵气兑换', False)],            
+                [(2, '灵气兑换', '灵气兑换', False)],            
             ]
            # 调用 markdown 函数生成数据
             data = await markdown(params_items, buttons)
@@ -964,7 +1437,7 @@ async def boss_integral_use_(bot: Bot, event: GroupMessageEvent, args: Message =
             msg = f"道友成功兑换获得：{item_info['name']}{quantity}个"
             params_items = [('msg', msg)]
             buttons = [
-                [(2, '妖界灵气兑换', '妖界灵气兑换', False)],            
+                [(2, '灵气兑换', '灵气兑换', False)],            
             ]
            # 调用 markdown 函数生成数据
             data = await markdown(params_items, buttons)
@@ -974,7 +1447,7 @@ async def boss_integral_use_(bot: Bot, event: GroupMessageEvent, args: Message =
         msg = f"该编号不在商品列表内哦，请检查后再兑换"
         params_items = [('msg', msg)]
         buttons = [
-            [(2, '妖界灵气兑换', '妖界灵气兑换', False)],            
+            [(2, '灵气兑换', '灵气兑换', False)],            
         ]
        # 调用 markdown 函数生成数据
         data = await markdown(params_items, buttons)

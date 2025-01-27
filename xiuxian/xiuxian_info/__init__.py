@@ -42,10 +42,7 @@ async def xiuxian_message_(bot: Bot, event: GroupMessageEvent):
     stone = sql_message.get_stone_rank(user_id)
     user_stone = int(stone[0])
     user_vip_days = sql_message.check_vip_status(user_id)
-    if user_vip_days > 0:
-        lefttime = user_vip_days + 1  # 剩余天数
-    else:
-        lefttime = 0
+    vipstatus = f"剩余 {user_vip_days} 天" if user_vip_days > 0 else "未激活"
     if user_name:
         pass
     else:
@@ -121,7 +118,7 @@ async def xiuxian_message_(bot: Bot, event: GroupMessageEvent):
         "注册位数": f"道友是踏入修仙世界的第{int(user_num)}人",
         "修为排行": f"道友的修为排在第{int(user_rank)}位",
         "灵石排行": f"道友的灵石排在第{int(user_stone)}位",
-        "VIP有效期": f"剩余{lefttime}天",
+        "修仙令牌": f"{vipstatus}",
     }
     
     command_text = event.raw_message
@@ -142,6 +139,7 @@ async def xiuxian_message_(bot: Bot, event: GroupMessageEvent):
         await xiuxian_message.finish()
     else:
         msg = f"""
+UID: {user_id}        
 道号: {user_name}
 境界: {user_info['level']}
 修为: {number_to(user_info['exp'])}
@@ -160,7 +158,7 @@ async def xiuxian_message_(bot: Bot, event: GroupMessageEvent):
 注册位数: 道友是踏入修仙世界的第{int(user_num)}人
 修为排行: 道友的修为排在第{int(user_rank)}位
 灵石排行: 道友的灵石排在第{int(user_stone)}位
-VIP有效期: 剩余{lefttime}天,
+修仙令牌: {vipstatus}
 """
        # await bot.send_group_msg(group_id=int(send_group_id), message=msg)
         params_items = [('msg', msg)]               

@@ -82,10 +82,11 @@ __buff_help__ = f"""
 """.strip()
 
 
-# 每日0点重置用户宗门任务次数、宗门丹药领取次数
-@two_exp_cd_up.scheduled_job("cron", hour=0, minute=15)
+# 每日23点重置用户宗门任务次数、宗门丹药领取次数
+@two_exp_cd_up.scheduled_job("cron", hour=22, minute=59)
 async def two_exp_cd_up_():
     sql_message.update_shuangxiu(reset_all=True)
+    sql_message.update_mijing(reset_all=True)
     logger.opt(colors=True).info(f"<green>双修次数已更新！</green>")
 
 
@@ -313,7 +314,7 @@ async def blessed_spot_rename_(bot: Bot, event: GroupMessageEvent, args: Message
     await blessed_spot_rename.finish()
 
 
-@qc.handle(parameterless=[Cooldown(at_sender=False)])
+@qc.handle(parameterless=[Cooldown(5, at_sender=False)])
 async def qc_(bot: Bot, event: GroupMessageEvent, args: Message = CommandArg()):
     """切磋，不会掉血"""
     bot, send_group_id = await assign_bot(bot=bot, event=event)
@@ -385,9 +386,9 @@ async def qc_(bot: Bot, event: GroupMessageEvent, args: Message = CommandArg()):
             player1['会心'] = (armor_crit_buff + main_crit_buff) * 100
 
         
-        user2_weapon_data = UserBuffDate(user2['user_id']).get_user_weapon_data()
-        user2_armor_crit_buff = UserBuffDate(user_id).get_user_armor_buff_data()
-        user2_main_data = UserBuffDate(user_id).get_user_main_buff_data() #玩家2功法会心
+        user2_weapon_data = UserBuffDate(user2['user_id']).get_user_weapon_data() #玩家2武器会心
+        user2_armor_crit_buff = UserBuffDate(user2['user_id']).get_user_armor_buff_data() #玩家2防具会心
+        user2_main_data = UserBuffDate(user2['user_id']).get_user_main_buff_data() #玩家2功法会心
         
         if  user2_main_data != None: #玩家2功法会心
             main_crit_buff2 = user2_main_data['crit_buff']
@@ -505,8 +506,8 @@ async def two_exp_(bot: Bot, event: GroupMessageEvent, args: Message = CommandAr
                 limt_2 = user_2['is_shuangxiu']
                 sql_message.update_last_check_info_time(user_1['user_id']) # 更新查看修仙信息时间
                 # 加入传承
-                impart_data_1 = xiuxian_impart.get_user_info_with_id(user_1['user_id'])
-                impart_data_2 = xiuxian_impart.get_user_info_with_id(user_2['user_id'])
+                impart_data_1 = xiuxian_impart.get_user_impart_info_with_id(user_1['user_id'])
+                impart_data_2 = xiuxian_impart.get_user_impart_info_with_id(user_2['user_id'])
                 impart_two_exp_1 = impart_data_1['impart_two_exp'] if impart_data_1 is not None else 0
                 impart_two_exp_2 = impart_data_2['impart_two_exp'] if impart_data_2 is not None else 0
                 
@@ -804,7 +805,7 @@ async def xiuxian_exp_up_(bot: Bot, event: GroupMessageEvent, args: Message = Co
         # 洞天福地为加法
     )  # 本次闭关获取的修为
     # 计算传承增益
-    impart_data = xiuxian_impart.get_user_info_with_id(user_id)
+    impart_data = xiuxian_impart.get_user_impart_info_with_id(user_id)
     impart_exp_up = impart_data['impart_exp_up'] if impart_data is not None else 0
     exp = int(exp * (1 + impart_exp_up))
     if exp >= user_get_exp_max:
@@ -827,6 +828,7 @@ async def xiuxian_exp_up_(bot: Bot, event: GroupMessageEvent, args: Message = Co
     else:
         sql_message.update_exp(user_id, exp)
         sql_message.update_power2(user_id)  # 更新战力
+     #   sql_message.update_user_stamina(user_id, 1, 2)
         result_msg, result_hp_mp = OtherSet().send_hp_mp(user_id, int(exp * hp_speed * (1 + mainbuffclors)), int(exp * mp_speed))
         sql_message.update_user_attribute(user_id, result_hp_mp[0], result_hp_mp[1], int(result_hp_mp[2] / 10))
         msg = f"修炼结束，本次修炼共增加修为：{exp} {result_msg[0]}{result_msg[1]}"        
@@ -857,6 +859,16 @@ async def in_closing_(bot: Bot, event: GroupMessageEvent):
         await in_closing.finish()
     user_id = user_info['user_id']
     is_type, msg = check_user_type(user_id, 0)
+    if user_info['root_type'] == '伪灵根':
+        msg = "器师无法闭关！"
+        params_items = [('msg', msg)]               
+        buttons = [
+            [(2, '闭关', '闭关', True)]
+        ]
+        # 调用 markdown 函数生成数据
+        data = await markdown(params_items, buttons)
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
+        await in_closing.finish()    
     if is_type:  # 符合
         sql_message.in_closing(user_id, user_type)
         msg = f"道友进入<qqbot-cmd-input text=\"闭关\" show=\"闭关\" reference=\"false\" />状态，若有要事需暂离仙境，还请抉择是否<qqbot-cmd-input text=\"出关\" show=\"出关\" reference=\"false\" />。"
@@ -921,15 +933,17 @@ async def out_closing_(bot: Bot, event: GroupMessageEvent):
         await out_closing.finish()
     else:
         # 用户状态为1
-        in_closing_time = datetime.strptime(
-            user_cd_message['create_time'], "%Y-%m-%d %H:%M:%S.%f"
-        )  # 进入闭关的时间
+        try:
+            in_closing_time = datetime.strptime(user_cd_message['create_time'], "%Y-%m-%d %H:%M:%S.%f")
+        except ValueError:
+            in_closing_time = datetime.strptime(user_cd_message['create_time'], "%Y-%m-%d %H:%M:%S")
         exp_time = (
                 OtherSet().date_diff(now_time, in_closing_time) // 60
         )  # 闭关时长计算(分钟) = second // 60
         level_rate = sql_message.get_root_rate(user_mes['root_type'])  # 灵根倍率
         realm_rate = jsondata.level_data()[level]["spend"]  # 境界倍率
         user_buff_data = UserBuffDate(user_id)
+        user_blessed_spot_data = UserBuffDate(user_id).BuffInfo['blessed_spot']        
         mainbuffdata = user_buff_data.get_user_main_buff_data()
         mainbuffratebuff = mainbuffdata['ratebuff'] if mainbuffdata != None else 0  # 功法修炼倍率
         mainbuffcloexp = mainbuffdata['clo_exp'] if mainbuffdata != None else 0  # 功法闭关经验
@@ -942,7 +956,7 @@ async def out_closing_(bot: Bot, event: GroupMessageEvent):
             (exp_time * XiuConfig().closing_exp) * ((level_rate * realm_rate * (1 + mainbuffratebuff + vip_bonus) * (1 + mainbuffcloexp)))
         )  # 本次闭关获取的修为
         # 计算传承增益
-        impart_data = xiuxian_impart.get_user_info_with_id(user_id)
+        impart_data = xiuxian_impart.get_user_impart_info_with_id(user_id)
         impart_exp_up = impart_data['impart_exp_up'] if impart_data is not None else 0
         exp = int(exp * (1 + impart_exp_up))
         if exp >= user_get_exp_max:
@@ -1040,12 +1054,18 @@ async def mind_state_(bot: Bot, event: GroupMessageEvent):
     user_id = user_msg['user_id']
     sql_message.update_last_check_info_time(user_id) # 更新查看修仙信息时间
     if user_msg['hp'] is None or user_msg['hp'] == 0:
-        sql_message.update_user_hp(user_id)
+        if user_msg['root_type'] == '轮回道果':
+            sql_message.update_user_hp2(user_id) 
+        elif user_msg['root_type'] == '真·轮回道果':
+            sql_message.update_user_hp3(user_id)
+        else:
+            sql_message.update_user_hp(user_id)  # 重置用户HP，mp，atk状态
     user_msg = sql_message.get_user_real_info(user_id)
 
     level_rate = sql_message.get_root_rate(user_msg['root_type'])  # 灵根倍率
     realm_rate = jsondata.level_data()[user_msg['level']]["spend"]  # 境界倍率
     user_buff_data = UserBuffDate(user_id)
+    user_blessed_spot_data = UserBuffDate(user_id).BuffInfo['blessed_spot']    
     main_buff_data = user_buff_data.get_user_main_buff_data()
     user_armor_crit_data = user_buff_data.get_user_armor_buff_data() #我的状态防具会心
     user_weapon_data = UserBuffDate(user_id).get_user_weapon_data() #我的状态武器减伤
@@ -1101,7 +1121,7 @@ async def mind_state_(bot: Bot, event: GroupMessageEvent):
     main_buff_rate_buff = main_buff_data['ratebuff'] if main_buff_data is not None else 0
     main_hp_buff = main_buff_data['hpbuff'] if main_buff_data is not None else 0
     main_mp_buff = main_buff_data['mpbuff'] if main_buff_data is not None else 0
-    impart_data = xiuxian_impart.get_user_info_with_id(user_id)
+    impart_data = xiuxian_impart.get_user_impart_info_with_id(user_id)
     impart_hp_per = impart_data['impart_hp_per'] if impart_data is not None else 0
     impart_mp_per = impart_data['impart_mp_per'] if impart_data is not None else 0
     impart_know_per = impart_data['impart_know_per'] if impart_data is not None else 0
@@ -1113,7 +1133,10 @@ async def mind_state_(bot: Bot, event: GroupMessageEvent):
     main_critatk =  user_main_critatk['critatk'] if  user_main_critatk is not None else 0 #我的状态功法会心伤害
     leveluprate = int(user_msg['level_up_rate'])  # 用户失败次数加成
     number =  user_main_critatk["number"] if user_main_critatk is not None else 0
-    
+    total_def = def_buff + weapon_def + main_def
+    # 加入减伤上限的判断
+    if total_def >= 90:
+        total_def = 90  # 总减伤上限为 90%    
     msg = f"""      
 道号：<qqbot-cmd-input text="修改道号" show="{user_msg['user_name']} " reference="false" />  |  <qqbot-cmd-input text="切磋 {user_msg['user_name']} " show="切磋" reference="false" />
 体力：{user_msg['user_stamina']}
@@ -1123,9 +1146,9 @@ async def mind_state_(bot: Bot, event: GroupMessageEvent):
 攻击:{number_to(user_msg['atk'])}
 突破状态: {exp_meg}(概率：{jsondata.level_rate_data()[user_msg['level']] + leveluprate + number}%)
 攻击修炼:{user_msg['atkpractice']}级(提升攻击力{user_msg['atkpractice'] * 4}%)
-修炼效率:{int(((level_rate * realm_rate) * (1 + main_buff_rate_buff)) * 100)}%
+修炼效率:{int(((level_rate * realm_rate) * (1 + main_buff_rate_buff) * (1+ user_blessed_spot_data)) * 100)}%
 会心:{crit_buff + int(impart_know_per * 100) + armor_crit_buff + main_crit_buff}%
-减伤率:{def_buff + weapon_def + main_def}%
+减伤率:{total_def}%
 boss战增益:{int(boss_atk * 100)}%
 会心伤害增益:{int((1.5 + impart_burst_per + weapon_critatk + main_critatk) * 100)}%
 """
@@ -1155,7 +1178,8 @@ async def buffinfo_(bot: Bot, event: GroupMessageEvent):
         await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
         await buffinfo.finish()
 
-    user_id = user_info['user_id']    
+    user_id = user_info['user_id'] 
+    user_name = user_info['user_name']    
     skill_msg = get_user_skill_back_msg(user_id) 
     total_items = len(skill_msg)
     items_per_page = 20
@@ -1199,25 +1223,25 @@ async def buffinfo_(bot: Bot, event: GroupMessageEvent):
     secbuffdata = UserBuffDate(user_id).get_user_sec_buff_data()
     secbuffmsg = get_sec_msg(secbuffdata) if get_sec_msg(secbuffdata) != '无' else ''
     msg = f"""
-道友的主功法：{mainbuffdata["name"] if mainbuffdata != None else '无'}
-{mainbuffmsg}
-道友的辅修功法：{subbuffdata["name"] if subbuffdata != None else '无'}
-{subbuffmsg}
-道友的神通：{secbuffdata["name"] if secbuffdata != None else '无'}
-{secbuffmsg}
+***{user_name}***道友   
+您装备的主功法：<qqbot-cmd-input text=\"查看修仙物品{mainbuffdata["name"] if mainbuffdata != None else '无'}\" show=\"{mainbuffdata["name"] if mainbuffdata != None else '无'}\" />
+您装备的辅修功法：<qqbot-cmd-input text=\"查看修仙物品{subbuffdata["name"] if subbuffdata != None else '无'}\" show=\"{subbuffdata["name"] if subbuffdata != None else '无'}\" />
+您装备的神通：<qqbot-cmd-input text=\"查看修仙物品{secbuffdata["name"] if secbuffdata != None else '无'}\" show=\"{secbuffdata["name"] if secbuffdata != None else '无'}\" />
+
 道友背包内的功法，辅修功法，神通信息：
 """
     start_index = page * items_per_page
     end_index = min(start_index + items_per_page, total_items)
     
     for skill in skill_msg[start_index:end_index]: 
-        msg += f"\n{skill}\n"
+        msg += f"\n>{skill}\n"
     if page_num > 1:
         msg += f'\n第({page + 1}/{page_num})页  <qqbot-cmd-input text=\"我的功法\" show=\"跳转\" reference=\"false\" />'        
     params_items = [('msg', msg)]              
     button_list = [
         [(2, '使用', '使用', False), (2, '炼金', '炼金', False)], 
-        [(2, '坊市上架', '坊市上架', False)],        
+        [(2, '坊市上架', '坊市上架', False), (2, '赠送', '赠送修仙道具', False)],
+        [(2, '一键炼金', '一键炼金', False)]        
     ]
     if upbutton != '':
         button_list.append([(2, '⬅️上一页', upbutton, True)])
@@ -1276,7 +1300,7 @@ async def my_exp_num_(bot: Bot, event: GroupMessageEvent):
   #  user_vip = sql_message.get_user_vip(user_id)
   #  vip_bonus = 3 if user_vip is not None else 0     
     limt = user_info["is_shuangxiu"]
-    impart_data = xiuxian_impart.get_user_info_with_id(user_id)
+    impart_data = xiuxian_impart.get_user_impart_info_with_id(user_id)
     impart_two_exp = impart_data['impart_two_exp'] if impart_data is not None else 0
     
     main_two_data = UserBuffDate(user_id).get_user_main_buff_data()

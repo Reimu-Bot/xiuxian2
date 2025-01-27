@@ -3,6 +3,7 @@ try:
 except ImportError:
     import json
 from ..xiuxian_utils.item_json import Items
+from ..xiuxian_utils.utils import number_to
 from ..xiuxian_utils.xiuxian2_handle import (
     XiuxianDateManage, UserBuffDate, 
     get_weapon_info_msg, get_armor_info_msg,
@@ -148,6 +149,8 @@ def get_user_main_back_msg(user_id):
     """
     l_equipment_msg = []
     l_shenwu_msg = []
+    l_shenwu1_msg = [] 
+    l_spwp_msg = []     
     l_xiulianitem_msg = []
     l_libao_msg = []
     l_msg = []
@@ -158,12 +161,16 @@ def get_user_main_back_msg(user_id):
         if user_back['goods_type'] == "装备":
             l_equipment_msg = get_equipment_msg(l_equipment_msg, user_id, user_back['goods_id'], user_back['goods_num'])
  
-        elif user_back['goods_type'] == "技能":
-            l_shenwu_msg = get_shenwu_msg(l_shenwu_msg, user_back['goods_id'], user_back['goods_num'])
+      #  elif user_back['goods_type'] == "技能":
+     #       l_shenwu_msg = get_shenwu_msg(l_shenwu_msg, user_back['goods_id'], user_back['goods_num'])
+
+        elif user_back['goods_type'] == "神物":
+            l_shenwu1_msg = get_shenwu_msg1(l_shenwu1_msg, user_back['goods_id'], user_back['goods_num'])
 
         elif user_back['goods_type'] == "聚灵旗":
             l_xiulianitem_msg = get_jlq_msg(l_xiulianitem_msg, user_back['goods_id'], user_back['goods_num'])
-
+        elif user_back['goods_type'] == "特殊物品":
+            l_spwp_msg = get_spwup_msg(l_spwp_msg, user_back['goods_id'], user_back['goods_num'])
         elif user_back['goods_type'] == "礼包":
             l_libao_msg = get_libao_msg(l_libao_msg, user_back['goods_id'], user_back['goods_num'])
 
@@ -172,16 +179,24 @@ def get_user_main_back_msg(user_id):
         for msg in l_equipment_msg:
             l_msg.append(msg)
 
-    if l_shenwu_msg:
+ #   if l_shenwu_msg:
+ #       l_msg.append("\n#☆------技能------☆")
+ #       for msg in l_shenwu_msg:
+ #           l_msg.append(msg)
+
+    if l_shenwu1_msg:
         l_msg.append("\n#☆------神物------☆")
-        for msg in l_shenwu_msg:
+        for msg in l_shenwu1_msg:
             l_msg.append(msg)
 
     if l_xiulianitem_msg:
         l_msg.append("\n#☆------修炼物品------☆")
         for msg in l_xiulianitem_msg:
             l_msg.append(msg)
-
+    if l_spwp_msg:
+        l_msg.append("\n#☆------特殊物品------☆")
+        for msg in l_spwp_msg:
+            l_msg.append(msg)
     if l_libao_msg:
         l_msg.append("\n#☆------礼包------☆")
         for msg in l_libao_msg:
@@ -284,9 +299,10 @@ def get_yaocai_msg(l_msg, goods_id, goods_num):
         'goods_id': goods_id,
         'name': item_info['name'],
         'level': item_info['level'],
-        'info': f"\n><qqbot-cmd-input text=\"查看物品效果{goods_id}\" show=\"{item_info['name']}\" reference=\"false\" /> {item_info['level']} {goods_num}   "
-                f"<qqbot-cmd-input text=\"炼金{item_info['name']} {goods_num}\" show=\"炼金\" reference=\"false\" />   "
-                f"<qqbot-cmd-input text=\"坊市上架{item_info['name']}\" show=\"坊市上架\" reference=\"false\" />"
+        'info': f"\n><qqbot-cmd-input text=\"查看物品效果{goods_id}\" show=\"{item_info['name']}\" /> {item_info['level']} {goods_num}   "
+                f"<qqbot-cmd-input text=\"炼金{item_info['name']} {goods_num}\" show=\"炼金\" />  "
+                f"<qqbot-cmd-input text=\"坊市上架{item_info['name']}\" show=\"坊市\" />  "
+                f"<qqbot-cmd-input text=\"赠送修仙道具{item_info['name']} {goods_num}\" show=\"增送\" />"
     }
     l_msg.append(msg)
     return l_msg
@@ -298,19 +314,30 @@ def get_jlq_msg(l_msg, goods_id, goods_num):
     """
     item_info = items.get_data_by_item_id(goods_id)
    # msg = f"名字：{item_info['name']}\n"
-    msg = f"\n><qqbot-cmd-input text=\"查看物品效果{goods_id}\" show=\"{item_info['name']}\" reference=\"false\" /> 拥有数量：{goods_num}\n><qqbot-cmd-input text=\"使用{item_info['name']} {goods_num}\" show=\"使用\" reference=\"false\" />    <qqbot-cmd-input text=\"炼金{item_info['name']} {goods_num}\" show=\"炼金\" reference=\"false\" />"  
+    msg = f"\n><qqbot-cmd-input text=\"查看物品效果{goods_id}\" show=\"{item_info['name']}\" /> {goods_num}  <qqbot-cmd-input text=\"使用{item_info['name']} {goods_num}\" show=\"使用\" />  <qqbot-cmd-input text=\"炼金{item_info['name']} {goods_num}\" show=\"炼金\" />"  
  #   msg += f"效果：{item_info['desc']}"
   #  msg += f"\n拥有数量:{goods_num}"
     l_msg.append(msg)
     return l_msg
 
+def get_spwp_msg(l_msg, goods_id, goods_num):
+    """
+    获取背包内的修炼物品信息，聚灵旗
+    """
+    item_info = items.get_data_by_item_id(goods_id)
+   # msg = f"名字：{item_info['name']}\n"
+    msg = f"\n><qqbot-cmd-input text=\"查看物品效果{goods_id}\" show=\"{item_info['name']}\" /> {goods_num}  <qqbot-cmd-input text=\"使用{item_info['name']} {goods_num}\" show=\"使用\" />"  
+ #   msg += f"效果：{item_info['desc']}"
+  #  msg += f"\n拥有数量:{goods_num}"
+    l_msg.append(msg)
+    return l_msg
 
 def get_ldl_msg(l_msg, goods_id, goods_num):
     """
     获取背包内的炼丹炉信息
     """
     item_info = items.get_data_by_item_id(goods_id)
-    msg = f"\n><qqbot-cmd-input text=\"查看物品效果{goods_id}\" show=\"{item_info['name']}\" reference=\"false\" /> 拥有数量：{goods_num}\n<qqbot-cmd-input text=\"炼丹帮助\" show=\"炼丹\" reference=\"false\" />    <qqbot-cmd-input text=\"坊市上架{item_info['name']}\" show=\"坊市上架\" reference=\"false\" />"  
+    msg = f"\n><qqbot-cmd-input text=\"查看物品效果{goods_id}\" show=\"{item_info['name']}\" /> {goods_num}\n<qqbot-cmd-input text=\"炼丹帮助\" show=\"炼丹\" />  <qqbot-cmd-input text=\"坊市上架{item_info['name']}\" show=\"坊市\" />"  
   #  msg = f"名字：{item_info['name']}\n"
   #  msg += f"效果：{item_info['desc']}"
   #  msg += f"\n拥有数量:{goods_num}"
@@ -347,10 +374,11 @@ def get_equipment_msg(l_msg, user_id, goods_id, goods_num):
    # msg += f"\n拥有数量:{goods_num}"
     is_use = check_equipment_use_msg(user_id, goods_id)
     if is_use:
-        msg += f" 拥有数量:{goods_num}\n><qqbot-cmd-input text=\"换装{item_info['name']}\" show=\"已装备⬇️\" reference=\"false\" />   <qqbot-cmd-input text=\"炼金{item_info['name']} {goods_num}\" show=\"炼金\" reference=\"false\" />"
+        msg += f" {goods_num} <qqbot-cmd-input text=\"换装{item_info['name']}\" show=\"✅已装备\" />  <qqbot-cmd-input text=\"炼金{item_info['name']} {goods_num}\" show=\"炼金\" />"
+        l_msg.insert(0, msg) 
     else:
-        msg += f" 拥有数量:{goods_num}\n><qqbot-cmd-input text=\"使用{item_info['name']}\" show=\"可装备⬆️\" reference=\"false\" />   <qqbot-cmd-input text=\"炼金{item_info['name']} {goods_num}\" show=\"炼金\" reference=\"false\" />   <qqbot-cmd-input text=\"坊市上架{item_info['name']}\" show=\"坊市上架\" reference=\"false\" />"  
-    l_msg.append(msg)
+        msg += f" {goods_num} <qqbot-cmd-input text=\"使用{item_info['name']}\" show=\"🔃️\" />  <qqbot-cmd-input text=\"炼金{item_info['name']} {goods_num}\" show=\"炼金\" />  <qqbot-cmd-input text=\"坊市上架{item_info['name']}\" show=\"坊市\"  />"  
+        l_msg.append(msg)
     return l_msg
 
 
@@ -369,7 +397,7 @@ def get_skill_msg(l_msg, goods_id, goods_num):
     elif item_info['item_type'] == '辅修功法':#辅修功法12
         msg = f"{item_info['level']}辅修功法-"
         msg += get_sub_info_msg(goods_id)[1]
-    msg += f"拥有数量:{goods_num}  \n<qqbot-cmd-input text=\"使用{item_info['name']}\" show=\"使用\" reference=\"false\" />  <qqbot-cmd-input text=\"炼金{item_info['name']} {goods_num}\" show=\"炼金\" reference=\"false\" />   <qqbot-cmd-input text=\"坊市上架{item_info['name']}\" show=\"坊市上架\" reference=\"false\" />"
+    msg += f" 拥有数量:{goods_num} \n><qqbot-cmd-input text=\"使用{item_info['name']}\" show=\"使用\" />  <qqbot-cmd-input text=\"炼金{item_info['name']} {goods_num}\" show=\"炼金\" />   <qqbot-cmd-input text=\"坊市上架{item_info['name']}\" show=\"坊市\" />"
     l_msg.append(msg)
     return l_msg
 
@@ -380,7 +408,7 @@ def get_elixir_msg(l_msg, goods_id, goods_num):
     """
     item_info = items.get_data_by_item_id(goods_id)
  #   msg = f"名字：{item_info['name']}\n"
-    msg = f"\n><qqbot-cmd-input text=\"查看物品效果{goods_id}\" show=\"{item_info['name']}\" reference=\"false\" /> 拥有数量：{goods_num}    <qqbot-cmd-input text=\"使用{item_info['name']}\" show=\"使用\" reference=\"false\" />    \n><qqbot-cmd-input text=\"炼金{item_info['name']} {goods_num}\" show=\"炼金\" reference=\"false\" />   <qqbot-cmd-input text=\"坊市上架{item_info['name']}\" show=\"坊市上架\" reference=\"false\" />"  
+    msg = f"\n><qqbot-cmd-input text=\"查看物品效果{goods_id}\" show=\"{item_info['name']}\" /> 拥有数量：{goods_num}    <qqbot-cmd-input text=\"使用{item_info['name']}\" show=\"使用\" />    \n><qqbot-cmd-input text=\"炼金{item_info['name']} {goods_num}\" show=\"炼金\" />   <qqbot-cmd-input text=\"坊市上架{item_info['name']}\" show=\"坊市\" />"  
   #  msg += f"效果：{item_info['desc']}\n"
   #  msg += f"拥有数量：{goods_num}"
     l_msg.append(msg)
@@ -396,7 +424,39 @@ def get_shenwu_msg(l_msg, goods_id, goods_num):
     except KeyError:
         desc = "这个东西本来会报错让背包出不来，当你看到你背包有这个这个东西的时候请联系超管解决。"
     
-    msg = f"\n><qqbot-cmd-input text=\"查看物品效果{goods_id}\" show=\"{item_info['name']}\" reference=\"false\" /> {item_info['level']} 拥有数量：{goods_num}\n><qqbot-cmd-input text=\"使用{item_info['name']}\" show=\"使用\" reference=\"false\" />    <qqbot-cmd-input text=\"炼金{item_info['name']} {goods_num}\" show=\"炼金\" reference=\"false\" />   <qqbot-cmd-input text=\"坊市上架{item_info['name']}\" show=\"坊市上架\" reference=\"false\" />"
+    msg = f"\n><qqbot-cmd-input text=\"查看物品效果{goods_id}\" show=\"{item_info['name']}\" /> {item_info['level']} {goods_num} <qqbot-cmd-input text=\"使用{item_info['name']}\" show=\"使用\" />  <qqbot-cmd-input text=\"炼金{item_info['name']} {goods_num}\" show=\"炼金\" />  <qqbot-cmd-input text=\"坊市上架{item_info['name']}\" show=\"坊市\" />"
+  #  msg += f"效果：{desc}\n"
+ #   msg += f"拥有数量：{goods_num}"
+    l_msg.append(msg)
+    return l_msg
+
+def get_shenwu_msg1(l_msg, goods_id, goods_num):
+    """
+    获取背包内的神物信息
+    """
+    item_info = items.get_data_by_item_id(goods_id)
+    try:
+        desc = item_info['desc']
+    except KeyError:
+        desc = "这个东西本来会报错让背包出不来，当你看到你背包有这个这个东西的时候请联系超管解决。"
+    
+    msg = f"\n><qqbot-cmd-input text=\"查看物品效果{goods_id}\" show=\"{item_info['name']}\" /> {goods_num} <qqbot-cmd-input text=\"使用{item_info['name']}\" show=\"使用\" />   <qqbot-cmd-input text=\"炼金{item_info['name']} {goods_num}\" show=\"炼金\" />   <qqbot-cmd-input text=\"坊市上架{item_info['name']}\" show=\"坊市\" />"
+  #  msg += f"效果：{desc}\n"
+ #   msg += f"拥有数量：{goods_num}"
+    l_msg.append(msg)
+    return l_msg
+
+def get_spwup_msg(l_msg, goods_id, goods_num):
+    """
+    获取背包内的神物信息
+    """
+    item_info = items.get_data_by_item_id(goods_id)
+    try:
+        desc = item_info['desc']
+    except KeyError:
+        desc = "这个东西本来会报错让背包出不来，当你看到你背包有这个这个东西的时候请联系超管解决。"
+    
+    msg = f"\n><qqbot-cmd-input text=\"查看物品效果{goods_id}\" show=\"{item_info['name']}\" /> {goods_num} <qqbot-cmd-input text=\"使用{item_info['name']}\" show=\"使用\" />   <qqbot-cmd-input text=\"炼金{item_info['name']} {goods_num}\" show=\"炼金\" />   <qqbot-cmd-input text=\"坊市上架{item_info['name']}\" show=\"坊市\" />"
   #  msg += f"效果：{desc}\n"
  #   msg += f"拥有数量：{goods_num}"
     l_msg.append(msg)
@@ -414,26 +474,26 @@ def get_item_msg(goods_id):
     """
     item_info = items.get_data_by_item_id(goods_id)
     if item_info['type'] == '丹药':
-        msg = f"名字：{item_info['name']}\n"
+        msg = f"{item_info['item_type']}：{item_info['name']}\n"
         msg += f"效果：{item_info['desc']}"
 
     elif item_info['item_type'] == '神物':
-        msg = f"名字：{item_info['name']}\n"
+        msg = f"{item_info['item_type']}：{item_info['name']}\n"
         msg += f"效果：{item_info['desc']}"
     
     elif item_info['item_type'] == '神通':
       #  msg = f"名字：{item_info['name']}\n"
-        msg = f"\n名字：<qqbot-cmd-input text=\"使用 {item_info['name']}\" show=\"{item_info['name']}\" reference=\"false\" />  {item_info['level']}"
+        msg = f"{item_info['item_type']}：<qqbot-cmd-input text=\"使用 {item_info['name']}\" show=\"{item_info['name']}\" />  {item_info['level']}"
         msg += f"\n效果：{get_sec_msg(item_info)}"
 
     elif item_info['item_type'] == '功法':
       #  msg = f"名字：{item_info['name']}\n"
-        msg = f"\n名字：<qqbot-cmd-input text=\"使用 {item_info['name']}\" show=\"{item_info['name']}\" reference=\"false\" />  {item_info['level']}"
+        msg = f"{item_info['item_type']}：<qqbot-cmd-input text=\"使用 {item_info['name']}\" show=\"{item_info['name']}\" />  {item_info['level']}"
         msg += f"\n效果：{get_main_info_msg(goods_id)[1]}"
         
     elif item_info['item_type'] == '辅修功法':#辅修功法11
        # msg = f"名字：{item_info['name']}\n"
-        msg = f"\n名字：<qqbot-cmd-input text=\"使用 {item_info['name']}\" show=\"{item_info['name']}\" reference=\"false\" />   {item_info['level']}"
+        msg = f"{item_info['item_type']}：<qqbot-cmd-input text=\"使用 {item_info['name']}\" show=\"{item_info['name']}\" />   {item_info['level']}"
         msg += f"\n效果：{get_sub_info_msg(goods_id)[1]}"
 
     elif item_info['item_type'] == '防具':
@@ -452,9 +512,25 @@ def get_item_msg(goods_id):
     elif item_info['item_type'] == "炼丹炉":
         msg = f"名字：{item_info['name']}\n"
         msg += f"效果：{item_info['desc']}"
+    elif item_info['item_type'] == "特殊物品":
+        msg = f"名字：{item_info['name']}\n"
+        msg += f"效果：{item_info['desc']}"
 
     else:
         msg = '不支持的物品'
+        
+    if 'fusion' in item_info:
+        fusion_info = item_info['fusion']
+        msg += "\n合成相关信息:\n"
+        needed_items = fusion_info.get('need_item', {})
+        for item_id, amount_needed in needed_items.items():
+            item_name = items.get_data_by_item_id(int(item_id))['name']
+            msg += f"需要{amount_needed}个{item_name}\n"
+        msg += f"需要灵石：{number_to(int(fusion_info.get('need_stone', 0)))}\n"
+        msg += f"需要境界：{fusion_info.get('need_rank', '无')}\n"
+        msg += f"需要修为：{number_to(int(fusion_info.get('need_exp', 0)))}\n"
+        msg += f"数量限制：{fusion_info.get('limit', '无')}"
+        
     return msg
 
 
@@ -487,7 +563,7 @@ def get_item_msg_rank(goods_id):
 
 
 def get_yaocai_info_msg(goods_id, item_info):
-    msg = f"<qqbot-cmd-input text=\"炼丹{item_info['name']}\" show=\"{item_info['name']}\" reference=\"false\" />{item_info['name']}    {item_info['level']}\n"
+    msg = f"{item_info['type']}：<qqbot-cmd-input text=\"炼丹{item_info['name']}\" show=\"{item_info['name']}\" />{item_info['name']}  {item_info['level']}\n"
   #  msg += f"品级：{item_info['level']}\n"
     msg += get_yaocai_info(item_info)
     return msg
@@ -500,7 +576,8 @@ def check_use_elixir(user_id, goods_id, num):
     goods_rank = goods_info['rank']
     goods_name = goods_info['name']
     back = sql_message.get_item_by_good_id_and_user_id(user_id, goods_id)
-    goods_all_num = back['all_num']
+    goods_all_num = back['all_num'] # 数据库里的使用数量
+    remaining_limit = goods_info['all_num'] - goods_all_num  # 剩余可用数量
     if goods_info['buff_type'] == "level_up_rate":  # 增加突破概率的丹药
         if goods_rank < user_rank:  # 最低使用限制
             msg = f"丹药：{goods_name}的最低使用境界为{goods_info['境界']}，道友不满足使用条件"
@@ -517,10 +594,15 @@ def check_use_elixir(user_id, goods_id, num):
         else:
             if goods_all_num >= goods_info['all_num']:
                 msg = f"道友使用的丹药：{goods_name}已经达到丹药的耐药性上限！已经无法使用该丹药了！"    
-            else:  # 检查完毕
+            else:
+                if num > remaining_limit:
+                    num = remaining_limit
+                    msg = f"道友使用的数量超过了耐药性上限呢，仅使用了{num}颗！"
+                else:
+                    msg = f"道友成功使用丹药：{goods_name}{num}颗, 下一次突破的成功概率提高{goods_info['buff'] * num}%!"
                 sql_message.update_back_j(user_id, goods_id, num, 1)
                 sql_message.update_levelrate(user_id, user_info['level_up_rate'] + goods_info['buff'] * num)
-                msg = f"道友成功使用丹药：{goods_name}{num}颗,下一次突破的成功概率提高{goods_info['buff'] * num}%!"
+             #   msg = f"道友成功使用丹药：{goods_name}{num}颗,下一次突破的成功概率提高{goods_info['buff'] * num}%!"
 
     elif goods_info['buff_type'] == "hp":  # 回复状态的丹药
         if user_info['root'] == "器师":

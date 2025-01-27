@@ -43,7 +43,7 @@ img_path = Path() / os.getcwd() / "data" / "xiuxian" / "card"
 time_img = ["花园百花", "花园温室", "画屏春-倒影", "画屏春-繁月", "画屏春-花临",
             "画屏春-皇女", "画屏春-满桂", "画屏春-迷花", "画屏春-霎那", "画屏春-邀舞"]
 
-get_drawgift = on_command("领取抽卡次数", priority=16, permission=GROUP, block=True)
+get_drawgift = on_command("领取修仙礼包", priority=16, permission=GROUP, block=True)
 gm_command_draw = on_command("xf增加抽卡", permission=SUPERUSER, priority=10, block=True)
 impart_draw_s = on_command("礼包传承抽卡", priority=16, permission=GROUP, block=True)
 impart_draw = on_command("传承抽卡", priority=16, permission=GROUP, block=True)
@@ -210,7 +210,7 @@ async def impart_draw_(bot: Bot, event: GroupMessageEvent):
                         img = str(x)
                     list_tp.append(
                         {"type": "node", "data": {"name": f"道友{user_info['user_name']}的传承抽卡", "uin": bot.self_id,
-                                                  "content": img}})
+                                                  "content": img}})                                                
                 try:
                     msgs = "\n".join([item["data"]["content"] for item in list_tp])
                     params_items = [('msg', msgs)]
@@ -234,7 +234,7 @@ async def impart_draw_(bot: Bot, event: GroupMessageEvent):
                     data = await markdown(params_items, buttons)
                     await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
                     await impart_draw.finish()
-                xiuxian_impart.add_impart_exp_day(3540, user_id)
+                xiuxian_impart.add_impart_exp_day(1770, user_id)
                 sql_message.update_ls(user_id, 10000000, 2)
                 xiuxian_impart.update_impart_wish(0, user_id)
                 # 更新传承数据
@@ -262,7 +262,7 @@ async def impart_draw_(bot: Bot, event: GroupMessageEvent):
                         img = str(x)
                     list_tp.append(
                         {"type": "node", "data": {"name": f"道友{user_info['user_name']}的传承抽卡", "uin": bot.self_id,
-                                                  "content": img}})
+                                                  "content": img}})                                                 
                 try:
                     msgs = "\n".join([item["data"]["content"] for item in list_tp])
                     params_items = [('msg', msgs)]
@@ -568,13 +568,13 @@ async def get_drawgift_(bot: Bot, event: GroupMessageEvent):
         ]
         data = await markdown(params_items, buttons)
         await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
-        await create_sect.finish()    
+        await get_drawgift.finish()    
     current_timestamp = time.time()
     # 设置截止时间（2024年10月7日的时间戳）
-    end_timestamp = time.mktime(time.strptime("2024-10-07", "%Y-%m-%d"))
+    end_timestamp = time.mktime(time.strptime("2025-2-6", "%Y-%m-%d"))
 
     if current_timestamp > end_timestamp:   
-        msg = "礼包领取已结束，祝您中秋国庆快乐！"
+        msg = "礼包领取已结束，祝您快乐！"
         params_items = [('msg', msg)]               
         buttons = [
             [(2, '修炼', '修炼', True)],            
@@ -582,29 +582,30 @@ async def get_drawgift_(bot: Bot, event: GroupMessageEvent):
        # 调用 markdown 函数生成数据
         data = await markdown(params_items, buttons)
         await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
-        await get_gift.finish()    
+        await get_drawgift.finish()    
     impart_data_draw = await impart_check(user_id)    
     scorenum = 50
-    propname = "渡厄丹"
-    propnum = 10 
+    propname = "2025乙巳蛇年新春礼包"
+    propnum = 1 
     gift_info = sql_message.get_gift_info(user_info['user_id'])  
     
     if gift_info == 0:
        # sql_message.update_ls(user_info['user_id'], scorenum, 1)  # 发放300万灵石
-        sql_message.send_back(user_id, 1999, "渡厄丹", "丹药", propnum, 0)  # 发放物品
+        sql_message.send_back(user_id, 15051, propname, "礼包", propnum, 1)  # 发放物品
         xiuxian_impart.update_stone_num(scorenum, user_id, 1)
         sql_message.update_gift(user_info['user_id'], 1)  # 更新领取状态
-        msg = f'亲爱的道友们，在这国庆佳节之际，庆祝祖国的繁荣富强。在这充满欢庆的日子里，灵梦为各位道友准备了小小礼物，发放{propname}{propnum}个，传承抽卡次数{scorenum}次。祝各位国庆快乐！φ（￣∇￣o）'
+        msg = f'2025新年快乐！\n🎄🎄您获得了传承抽卡次数{scorenum}次。\n🎄🎄修仙物品{propname} {propnum}个\n㊗㊗祝各位道友永远快乐！φ（￣∇￣o）'
         params_items = [('msg', msg)]               
         buttons = [
-            [(2, '礼包传承抽卡', '礼包传承抽卡', True)],            
+            [(2, '礼包传承抽卡', '礼包传承抽卡', True)],  
+            [(2, '使用物品', f'使用{propname}', True)],            
         ]
        # 调用 markdown 函数生成数据
         data = await markdown(params_items, buttons)
         await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
         await get_drawgift.finish()    
     else:
-        msg = "真是贪心！您已经领取过该礼品，无法再次领取。"
+        msg = "真是贪心！您已经领取过该礼包，无法再次领取。"
         params_items = [('msg', msg)]               
         buttons = [
             [(2, '传承帮助', '传承帮助', True)],            

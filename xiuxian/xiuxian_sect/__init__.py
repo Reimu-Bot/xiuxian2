@@ -63,7 +63,7 @@ sect_out = on_command("退出宗门", priority=5, permission=GROUP, block=True)
 sect_kick_out = on_command("踢出宗门", priority=5, permission=GROUP, block=True)
 sect_owner_change = on_command("宗主传位", priority=5, permission=GROUP, block=True)
 sect_list = on_command("宗门列表", priority=5, permission=GROUP, block=True)
-sect_help = on_fullmatch("宗门帮助", priority=5, permission=GROUP, block=True)
+sect_help = on_command("宗门帮助", aliases={"宗门"}, priority=12, permission=GROUP, block=True)
 sect_helps = on_fullmatch("宗主指令", priority=5, permission=GROUP, block=True)
 sect_task = on_command("宗门任务接取", aliases={"我的宗门任务"}, priority=7, permission=GROUP, block=True)
 sect_task_complete = on_fullmatch("宗门任务完成", priority=7, permission=GROUP, block=True)
@@ -124,7 +124,7 @@ async def materialsupdate_():
 
 
 # 每日0点重置用户宗门任务次数、宗门丹药领取次数
-@resetusertask.scheduled_job("cron", hour=0, minute=0)
+@resetusertask.scheduled_job("cron", hour=23, minute=57)
 async def resetusertask_():
     sql_message.sect_task_reset()
     sql_message.sect_elixir_get_num_reset()
@@ -1045,9 +1045,18 @@ async def sect_task_refresh_(bot: Bot, event: GroupMessageEvent):
     user_id = user_info['user_id']
     sect_id = user_info['sect_id']
     if sect_id:
-        if isUserTask(user_id):
-            create_user_sect_task(user_id)
-            msg = f"已刷新，道友当前接取的任务：{userstask[user_id]['任务名称']}\n{userstask[user_id]['任务内容']['desc']}"
+        task_type = "宗门任务"
+        usertask = sql_message.get_task_info(user_id, task_type)
+        if usertask:  # 已有任务
+            taskname = usertask['task_name']
+            taskcontent = usertask['task_content']            
+            tasklist = config["宗门任务"]
+            key = random.choices(list(tasklist))[0]
+            userstask['任务名称'] = key
+            userstask['任务内容'] = tasklist[key]
+            task_type = "宗门任务"
+            sql_message.create_user_sect_task(user_id, userstask['任务名称'], userstask['任务内容']['desc'], task_type)
+            msg = f"已刷新，道友当前接取的任务：{userstask['任务名称']}\n{userstask['任务内容']['desc']}"
             params_items = [('msg', msg)]
             buttons = [
                 [(2, '宗门任务接取', '宗门任务接取', True), (2, '宗门任务完成', '宗门任务完成', True)],   
@@ -1082,7 +1091,7 @@ async def sect_list_(bot: Bot, event: GroupMessageEvent):
     """宗门列表："""
     bot, send_group_id = await assign_bot(bot=bot, event=event)
     sect_lists_with_members = sql_message.get_all_sects_with_member_count()
-    print(sect_lists_with_members) 
+   # print(sect_lists_with_members) 
     # 计算总页数
     total_items = len(sect_lists_with_members)
     items_per_page = 20
@@ -1262,9 +1271,13 @@ async def sect_task_(bot: Bot, event: GroupMessageEvent):
             data = await markdown(params_items, buttons)
             await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
             await sect_task.finish()
+        task_type = "宗门任务"
+        usertask = sql_message.get_task_info(user_id, task_type)
 
-        if isUserTask(user_id):  # 已有任务
-            msg = f"道友当前已接取了任务：{userstask[user_id]['任务名称']}\n{userstask[user_id]['任务内容']['desc']}"
+        if usertask:  # 已有任务
+            taskname = usertask['task_name']
+            taskcontent = usertask['task_content']            
+            msg = f"道友当前已接取了任务：{taskname}\n{taskcontent}"
             params_items = [('msg', msg)]
             buttons = [
                 [(2, '宗门任务完成', '宗门任务完成', True)],                   
@@ -1273,8 +1286,14 @@ async def sect_task_(bot: Bot, event: GroupMessageEvent):
             await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
             await sect_task.finish()
 
-        create_user_sect_task(user_id)
-        msg = f"{userstask[user_id]['任务内容']['desc']}"
+
+        tasklist = config["宗门任务"]
+        key = random.choices(list(tasklist))[0]
+        userstask['任务名称'] = key
+        userstask['任务内容'] = tasklist[key]
+        task_type = "宗门任务"
+        sql_message.create_user_sect_task(user_id, userstask['任务名称'], userstask['任务内容']['desc'], task_type)
+        msg = f"{userstask['任务内容']['desc']}"
         params_items = [('msg', msg)]
         buttons = [
             [(2, '宗门任务接取', '宗门任务接取', True), (2, '宗门任务完成', '宗门任务完成', True)],   
@@ -1311,7 +1330,9 @@ async def sect_task_complete_(bot: Bot, event: GroupMessageEvent):
     user_id = user_info['user_id']
     sect_id = user_info['sect_id']
     if sect_id:
-        if not isUserTask(user_id):
+        task_type = "宗门任务"
+        usertask = sql_message.get_task_info(user_id, task_type)
+        if not usertask:
             msg = f"道友当前没有接取宗门任务，道友浪费了一次出门机会哦！"
             params_items = [('msg', msg)]
             buttons = [
@@ -1321,9 +1342,11 @@ async def sect_task_complete_(bot: Bot, event: GroupMessageEvent):
             data = await markdown(params_items, buttons)
             await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data}))
             await sect_task_complete.finish()
-
-        if userstask[user_id]['任务内容']['type'] == 1:  # type=1：需要扣气血，type=2：需要扣灵石
-            costhp = int((user_info['exp'] / 2) * userstask[user_id]['任务内容']['cost'])
+        taskname = usertask['task_name']
+        taskcontent = usertask['task_content'] 
+        task_config = config["宗门任务"][taskname]
+        if task_config["type"] == 1:  # type=1：需要扣气血，type=2：需要扣灵石
+            costhp = int((user_info['exp'] / 2) * task_config["cost"])
             if user_info['hp'] < user_info['exp'] / 10 or costhp >= user_info['hp']:
                 msg = (
                     f"道友兴高采烈的出门做任务，结果状态欠佳，没过两招就力不从心，坚持不住了，"
@@ -1338,7 +1361,7 @@ async def sect_task_complete_(bot: Bot, event: GroupMessageEvent):
                 await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data}))
                 await sect_task_complete.finish()
 
-            get_exp = int(user_info['exp'] * userstask[user_id]['任务内容']['give'])
+            get_exp = int(user_info['exp'] * task_config['give'])
 
             if user_info['sect_position'] is None:
                 max_exp_limit = 4
@@ -1351,7 +1374,7 @@ async def sect_task_complete_(bot: Bot, event: GroupMessageEvent):
             if int(get_exp + user_info['exp']) > max_exp_next:
                 get_exp = 1
                 msg = f"检测到修为将要到达上限！"
-            sect_stone = int(userstask[user_id]['任务内容']['sect'])
+            sect_stone = int(task_config['sect'])
             sql_message.update_user_hp_mp(user_id, user_info['hp'] - costhp, user_info['mp'])
             sql_message.update_exp(user_id, get_exp)
             sql_message.donate_update(user_info['sect_id'], sect_stone)
@@ -1359,7 +1382,7 @@ async def sect_task_complete_(bot: Bot, event: GroupMessageEvent):
             sql_message.update_user_sect_task(user_id, 1)
             sql_message.update_user_sect_contribution(user_id, user_info['sect_contribution'] + int(sect_stone))
             msg += f"道友大战一番，气血减少：{costhp}，获得修为：{get_exp}，所在宗门建设度增加：{sect_stone}，资材增加：{sect_stone * 10}, 宗门贡献度增加：{int(sect_stone)}"
-            userstask[user_id] = {}
+            sql_message.delete_user_sect_task(user_id, task_type)
             params_items = [('msg', msg)]
             buttons = [
                 [(2, '宗门任务接取', '宗门任务接取', True), (2, '宗门任务完成', '宗门任务完成', True)],   
@@ -1369,8 +1392,8 @@ async def sect_task_complete_(bot: Bot, event: GroupMessageEvent):
             await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data}))
             await sect_task_complete.finish()
 
-        elif userstask[user_id]['任务内容']['type'] == 2:  # type=1：需要扣气血，type=2：需要扣灵石
-            costls = userstask[user_id]['任务内容']['cost']
+        elif task_config['type'] == 2:  # type=1：需要扣气血，type=2：需要扣灵石
+            costls = task_config['cost']
 
             if costls > int(user_info['stone']):
                 msg = (
@@ -1385,7 +1408,7 @@ async def sect_task_complete_(bot: Bot, event: GroupMessageEvent):
                 await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data}))
                 await sect_task_complete.finish()
 
-            get_exp = int(user_info['exp'] * userstask[user_id]['任务内容']['give'])
+            get_exp = int(user_info['exp'] * task_config['give'])
 
             if user_info['sect_position'] is None:
                 max_exp_limit = 4
@@ -1398,15 +1421,15 @@ async def sect_task_complete_(bot: Bot, event: GroupMessageEvent):
             if int(get_exp + user_info['exp']) > max_exp_next:
                 get_exp = 1
                 msg = f"检测到修为将要到达上限！"
-            sect_stone = int(userstask[user_id]['任务内容']['sect'])
+            sect_stone = int(task_config['sect'])
             sql_message.update_ls(user_id, costls, 2)
             sql_message.update_exp(user_id, get_exp)
             sql_message.donate_update(user_info['sect_id'], sect_stone)
             sql_message.update_sect_materials(sect_id, sect_stone * 10, 1)
             sql_message.update_user_sect_task(user_id, 1)
             sql_message.update_user_sect_contribution(user_id, user_info['sect_contribution'] + int(sect_stone))
+            sql_message.delete_user_sect_task(user_id, task_type)
             msg = f"道友为了完成任务购买宝物消耗灵石：{costls}枚，获得修为：{get_exp}，所在宗门建设度增加：{sect_stone}，资材增加：{sect_stone * 10}, 宗门贡献度增加：{int(sect_stone)}"
-            userstask[user_id] = {}
             params_items = [('msg', msg)]
             buttons = [
                 [(2, '宗门任务接取', '宗门任务接取', True), (2, '宗门任务完成', '宗门任务完成', True)],   
@@ -1653,7 +1676,16 @@ async def sect_rename_(bot: Bot, event: GroupMessageEvent, args: Message = Comma
         sect_info = sql_message.get_sect_info(sect_id)
         enabled_groups = JsonConfig().get_enabled_groups()
         len_sect_name = len(update_sect_name.encode('gbk'))
-
+        ban_sect_id = []
+        if sect_id in ban_sect_id:
+            msg = "本宗门暂时无法宗门改名，请联系管理员！！"
+            params_items = [('msg', msg)]               
+            buttons = [
+                [(2, '联系管理员', '185110524', False)],
+            ]
+            data = await markdown(params_items, buttons)
+            await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data}))  
+            await sect_rename.finish()            
         if len_sect_name > 20:
             msg = f"道友输入的宗门名字过长,请重新输入！"
             params_items = [('msg', msg)]
@@ -2046,23 +2078,25 @@ async def sect_position_update_(bot: Bot, event: GroupMessageEvent, args: Messag
         buttons = [
             [(2, '宗门帮助', '宗门帮助', False)],            
         ]
-       # 调用 markdown 函数生成数据
         data = await markdown(params_items, buttons)
         await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data}))
         await sect_position_update.finish()
 
-    give_qq = None 
     msg = args.extract_plain_text().strip()
-
-    # 假设命令格式为: 宗门职位变更 2 道友的道号
-    # 使用空格拆分命令，提取职位编号和道友的道号
     msg_parts = msg.split()
     if len(msg_parts) >= 2:
         position_num = re.findall(r"\d+", msg_parts[1])  # 提取职位编号
         daohao = msg_parts[0]  # 提取道号
-
-        # 假设你有一个通过道号获取 QQ 号的函数
         user2_info = sql_message.get_user_info_with_name(daohao)
+        if user2_info is None:
+            msg = f"未找到道号为'{daohao}'的道友，请检查道号是否正确。"
+            params_items = [('msg', msg)]               
+            buttons = [
+                [(2, '重新输入道号', '宗门职位变更', False)],
+            ]
+            data = await markdown(params_items, buttons)
+            await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data}))
+            await sect_position_update.finish()        
         give_qq = user2_info['user_id']
     else:
         msg = "指令格式错误，请按照 '宗门职位变更 道号 职位编号' 格式输入。"
@@ -2151,7 +2185,7 @@ async def sect_position_update_(bot: Bot, event: GroupMessageEvent, args: Messag
                     await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data}))
                     await sect_position_update.finish()
             else:
-                msg = f"职位品阶数字解析异常，请输入正确的宗门职位。"
+                msg = f"职位品阶数字异常，请输入正确的宗门职位。"
                 params_items = [('msg', msg)]               
                 buttons = [
                     [(2, '宗门职位变更', '宗门职位变更', False)],            
@@ -2292,6 +2326,10 @@ async def my_sect_(bot: Bot, event: GroupMessageEvent):
         protector_limit = config['宗门丹房参数']['elixir_room_level'][str(sect_info['elixir_room_level'])]['position_limits']['护法']     
         sql_res = sql_message.scale_top()
         top_idx_list = [_[0] for _ in sql_res]
+        if not sect_info['sect_memo']:
+            zongxun = '暂无'
+        else:
+            zongxun = sect_info['sect_memo']
         if int(sect_info['elixir_room_level']) == 0:
             elixir_room_name = "暂无"
         else:
@@ -2309,7 +2347,7 @@ async def my_sect_(bot: Bot, event: GroupMessageEvent):
 宗门丹房：{elixir_room_name}
 长老：<qqbot-cmd-input text=\"宗门职位变更 道号(自己修改) 1\" show=\"{elder_count}/{elder_limit}\" reference=\"false\" />  护法：<qqbot-cmd-input text=\"宗门职位变更 道号(自己修改) 2\" show=\"{protector_count}/{protector_limit}\" reference=\"false\" />  
 内门弟子：<qqbot-cmd-input text=\"宗门职位变更 道号(自己修改) 3\" show=\"{neimen_count}\" reference=\"false\" />  外门弟子：<qqbot-cmd-input text=\"宗门职位变更 道号(自己修改) 4\" show=\"{waimen_count}\" reference=\"false\" />
-宗   训：{sect_info['sect_memo']}
+宗   训：{zongxun}
 """
         if sect_position == owner_position:
             msg += f"\n宗门储备：{sect_info['sect_used_stone']}灵石"
@@ -2330,7 +2368,7 @@ async def my_sect_(bot: Bot, event: GroupMessageEvent):
                 [(2, '宗门任务接取', '宗门任务接取', True), (2, '宗门任务完成', '宗门任务完成', True)],
                 [(2, '宗门功法查看', '宗门功法查看', True), (2, '宗门成员查看', '宗门成员查看', True)],    
                 [(2, '宗门丹药领取', '宗门丹药领取', True), (2, '升级攻击修炼', '升级攻击修炼', True)],
-                [(2, '退出宗门', '退出宗门', True), (2, '我的宗门', '我的宗门', True)],                
+                [(2, '退出宗门', '退出宗门', False), (2, '我的宗门', '我的宗门', True)],                
             ]   
             data = await markdown(params_items, buttons)
             await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 

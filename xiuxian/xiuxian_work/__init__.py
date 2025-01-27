@@ -15,7 +15,7 @@ from datetime import datetime
 from ..xiuxian_utils.xiuxian_opertion import do_is_work
 from ..xiuxian_utils.utils import check_user, check_user_type, get_msg_pic, markdown
 from nonebot.log import logger
-from .reward_data_source import PLAYERSDATA
+from .reward_data_source import PLAYERSDATA, readf, deletef, savef
 from ..xiuxian_utils.item_json import Items
 from ..xiuxian_config import convert_rank, XiuConfig
 
@@ -30,13 +30,13 @@ count = 3  # 免费次数
 
 
 # 重置悬赏令刷新次数
-@resetrefreshnum.scheduled_job("cron", hour=0, minute=15)
+@resetrefreshnum.scheduled_job("cron", hour=22, minute=59)
 async def resetrefreshnum_():
     sql_message.reset_work_num()
     logger.opt(colors=True).info(f"<green>用户悬赏令刷新次数重置成功</green>")
 
 
-last_work = on_command("最后的悬赏令", priority=15, block=True)
+last_work = on_command("xfffg最后的悬赏令", priority=15, block=True)
 do_work = on_regex(
     r"^悬赏令(刷新|终止|结算|接取|帮助)?(\d+)?",
     priority=10,
@@ -47,14 +47,12 @@ __work_help__ = f"""
 #悬赏令帮助信息:
 \n><qqbot-cmd-input text=\"悬赏令\" show=\"悬赏令\" reference=\"false\" />:获取对应实力的悬赏令
 \n><qqbot-cmd-input text=\"悬赏令刷新\" show=\"悬赏令刷新\" reference=\"false\" />:刷新当前悬赏令,每日免费{count}次
-\n>实力支持：江湖好手|搬血境|洞天境|化灵境|铭纹境|列阵境|尊者境|神火境|真一境|圣祭境|天神境|虚道境|斩我境|遁一境|至尊境|真仙境
 \n><qqbot-cmd-input text=\"悬赏令终止\" show=\"悬赏令终止\" reference=\"false\" />:终止当前悬赏令任务,如悬赏令结算无反应，请终止！
 \n><qqbot-cmd-input text=\"悬赏令结算\" show=\"悬赏令结算\" reference=\"false\" />:结算悬赏奖励
 \n><qqbot-cmd-input text=\"悬赏令接取\" show=\"悬赏令接取 编号\" reference=\"false\" />：接取对应的悬赏令
-\n><qqbot-cmd-input text=\"最后的悬赏令\" show=\"最后的悬赏令\" reference=\"false\" />:用于接了悬赏令却境界突破导致卡住的道友使用
 """.strip()
-
-
+#\n>实力支持：江湖好手|搬血境|洞天境|化灵境|铭纹境|列阵境|尊者境|神火境|真一境|圣祭境|天神境|虚道境|斩我境|遁一境|至尊境|真仙境
+#\n><qqbot-cmd-input text=\"最后的悬赏令\" show=\"最后的悬赏令\" reference=\"false\" />:用于接了悬赏令却境界突破导致卡住的道友使用
 @last_work.handle(parameterless=[Cooldown(stamina_cost = 1, at_sender=False)])
 async def last_work_(bot: Bot, event: GroupMessageEvent):
     bot, send_group_id = await assign_bot(bot=bot, event=event)
@@ -191,18 +189,19 @@ async def do_work_(bot: Bot, event: GroupMessageEvent, args: Tuple[Any, ...] = R
         data = await markdown(params_items, buttons)
         await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data}))
         await do_work.finish()
+     
     mode = args[0]  # 刷新、终止、结算、接取
-    if user_rank <= convert_rank('仙王境初期')[0] or user_info['exp'] >= sql_message.get_level_power(user_level):
-        msg = "道友，您的修为日益精进，普通的悬赏任务已无法满足您的需求，去寻找更大的挑战把。"
-        params_items = [('msg', msg)]               
-        buttons = [
-            [(2, '秘境', '秘境帮助', True), (2, '除妖', '待更新', True)],  
+ #   if user_rank <= convert_rank('仙王境初期')[0] or user_info['exp'] >= sql_message.get_level_power(user_level):
+ #       msg = "道友，您的修为日益精进，普通的悬赏任务已无法满足您的需求，去寻找更大的挑战把。"
+  #      params_items = [('msg', msg)]               
+ #       buttons = [
+ #           [(2, '秘境', '秘境帮助', True), (2, '除妖', '待更新', True)],  
             
-        ]
+ #       ]
        # 调用 markdown 函数生成数据
-        data = await markdown(params_items, buttons)
-        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data}))
-        await do_work.finish()
+ #       data = await markdown(params_items, buttons)
+  #      await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data}))
+ #       await do_work.finish()
     user_level = user_info['level']
     if int(user_info['exp']) >= int(OtherSet().set_closing_type(user_level)) * XiuConfig().closing_exp_upper_limit:
         # 获取下个境界需要的修为 * 1.5为闭关上限
@@ -237,27 +236,59 @@ async def do_work_(bot: Bot, event: GroupMessageEvent, args: Tuple[Any, ...] = R
         await do_work.finish()
 
     usernums = sql_message.get_work_num(user_id)
-    freenum = count - usernums - 1
+    freenum = count - usernums
     if freenum < 0:
         freenum = 0
     if mode is None:  # 接取逻辑
         if (user_cd_message['scheduled_time'] is None) or (user_cd_message['type'] == 0):
+          #  usernums = sql_message.get_work_num(user_id)
+          #  freenum = count - usernums
+          #  if freenum <= 0:
+           #     msg = f"道友的今日刷新次数已用完，请明日再来吧。"
+           #     params_items = [('msg', msg)]               
+           #     buttons = [          
+           #         [(2, '悬赏令', '悬赏令 ', True)],           
+           #     ]
+               # 调用 markdown 函数生成数据
+           #     data = await markdown(params_items, buttons)
+           #     await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data}))
+           #     await do_work.finish()  
+           # else: 
+            if not os.path.exists(PLAYERSDATA / str(user_id) / "workinfo.json"):
+                msg += f"\n未找到悬赏令，请刷新！"
+                params_items = [('msg', msg)]                
+                buttons = [         
+                    [(2, '悬赏令刷新', '悬赏令刷新', True)],                    
+                ]
+               # 调用 markdown 函数生成数据
+                data = await markdown(params_items, buttons)
+                await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data}))
+                await do_work.finish()                
+            work_msg = readf(user_id)  # 读取 JSON 数据
+            msg = "☆------道友的个人悬赏令------☆\n"
+            work_list = []
+            n = 1
+            worknum = len(work_msg)  # 计算任务数       
             try:
-                msg = work[user_id].msg
+                for task_name, task_info in work_msg.items():  # 遍历 JSON 数据
+                    work_list.append([task_name, task_info[2]])  # 提取需要的信息
+                   # print(work_list)
+                    item_info = Items().get_data_by_item_id(int(task_info[3]))
+                    extra_reward = f"可能额外获得：{item_info['level']}:{item_info['name']}!"
+                    work_info = [task_name, task_info[0], task_info[1], task_info[2], extra_reward]
+                    msg += f"\n>{n}、{get_work_msg(work_info)}<qqbot-cmd-input text=\"悬赏令接取{n}\" show=\"点击接取\" reference=\"false\" />"  # 使用描述文本
+                    n += 1
+                msg += f"\n悬赏令每日刷新次数：{count}。"
             except KeyError:
                 msg = "没有查到你的悬赏令信息呢，请刷新！"
+            work[user_id] = do_is_work(user_id)
+            work[user_id].world = work_list
         elif user_cd_message['type'] == 2:
             work_time = datetime.strptime(
                 user_cd_message['create_time'], "%Y-%m-%d %H:%M:%S.%f"
             )
             exp_time = (datetime.now() - work_time).seconds // 60  # 时长计算
-            
             time2 = workhandle().do_work(key=1, name=user_cd_message['scheduled_time'], user_id=user_info['user_id'])
-            user_vip_days = sql_message.check_vip_status(user_id)
-            if user_vip_days > 0:
-                time2 = time2 // 2  # 减少一倍时间
-            else:
-                time2 = time2              
             if exp_time < time2:
                 msg = f"进行中的悬赏令【{user_cd_message['scheduled_time']}】，预计{time2 - exp_time}分钟后可结束"
             else:
@@ -265,10 +296,10 @@ async def do_work_(bot: Bot, event: GroupMessageEvent, args: Tuple[Any, ...] = R
         else:
             msg = "状态未知错误！"
         msg += f"\n今日剩余可免费刷新次数：{freenum}次"
-        params_items = [('msg', msg)]               
+        params_items = [('msg', msg)]                
         buttons = [         
             [(2, '悬赏令刷新', '悬赏令刷新', True)],               
-            [(2, '悬赏令结算', '悬赏令结算', False), (2, '悬赏令终止', '悬赏令终止', False)],           
+            [(2, '悬赏令接取', '悬赏令接取', False), (2, '悬赏令结算', '悬赏令结算', False)],           
         ]
        # 调用 markdown 函数生成数据
         data = await markdown(params_items, buttons)
@@ -353,6 +384,7 @@ async def do_work_(bot: Bot, event: GroupMessageEvent, args: Tuple[Any, ...] = R
             sql_message.update_ls(user_id, stone, 2)
             sql_message.do_work(user_id, 0)
             msg = f"道友不讲诚信，被打了一顿灵石减少{stone},悬赏令已终止！"
+            deletef(user_id)
             params_items = [('msg', msg)]               
             buttons = [
                 [(2, '悬赏令', '悬赏令 ', True), (2, '悬赏令刷新', '悬赏令刷新 ', True)],           
@@ -389,7 +421,7 @@ async def do_work_(bot: Bot, event: GroupMessageEvent, args: Tuple[Any, ...] = R
             if user_vip_days > 0:
                 time2 = time2 // 2  # 减少一倍时间
             else:
-                time2 = time2              
+                time2 = time2             
             if exp_time < time2:
                 msg = f"进行中的悬赏令【{user_cd_message['scheduled_time']}】，预计{time2 - exp_time}分钟后可结束"
                 params_items = [('msg', msg)]               
@@ -416,13 +448,14 @@ async def do_work_(bot: Bot, event: GroupMessageEvent, args: Tuple[Any, ...] = R
                 if big_suc:  # 大成功
                     sql_message.update_exp(user_id, give_exp * 2)
                     sql_message.do_work(user_id, 0)
+                    deletef(user_id)
                     msg = f"悬赏令结算，{msg}增加修为{give_exp * 2}"
                     # todo 战利品结算sql
                     if item_flag:
                         sql_message.send_back(user_id, item_id, item_info['name'], item_info['type'], 1)
                         msg += f"，额外获得奖励：{item_msg}!"
                     else:
-                        msg += "!"
+                        msg += "!"                   
                     params_items = [('msg', msg)]               
                     buttons = [
                         [(2, '悬赏令', '悬赏令', True), (2, '悬赏令刷新', '悬赏令刷新', True)],                    
@@ -435,6 +468,7 @@ async def do_work_(bot: Bot, event: GroupMessageEvent, args: Tuple[Any, ...] = R
                 else:
                     sql_message.update_exp(user_id, give_exp)
                     sql_message.do_work(user_id, 0)
+                    deletef(user_id)
                     msg = f"悬赏令结算，{msg}增加修为{give_exp}"
                     if s_o_f:  # 普通成功
                         if item_flag:
@@ -442,6 +476,7 @@ async def do_work_(bot: Bot, event: GroupMessageEvent, args: Tuple[Any, ...] = R
                             msg += f"，额外获得奖励：{item_msg}!"
                         else:
                             msg += "!"
+                        
                         params_items = [('msg', msg)]               
                         buttons = [
                             [(2, '悬赏令', '悬赏令', True), (2, '悬赏令刷新', '悬赏令刷新', True)],                   
@@ -492,6 +527,7 @@ async def do_work_(bot: Bot, event: GroupMessageEvent, args: Tuple[Any, ...] = R
                     work_num = int(num)  # 任务序号
                 try:
                     get_work = work[user_id].world[work_num - 1]
+                   # print(get_work)
                     sql_message.do_work(user_id, 2, get_work[0])
                     del work[user_id]
                     msg = f"接取任务【{get_work[0]}】成功"
@@ -517,10 +553,10 @@ async def do_work_(bot: Bot, event: GroupMessageEvent, args: Tuple[Any, ...] = R
                     await do_work.finish()
 
             except KeyError:
-                msg = "没有查到你的悬赏令信息呢，请刷新！"
+                msg = "没有查到你的悬赏令信息呢，请发送【悬赏令】查看。如果【悬赏令】没有请再刷新！"
                 params_items = [('msg', msg)]               
                 buttons = [
-                    [(2, '悬赏令刷新', '悬赏令刷新', True)],                     
+                    [(2, '悬赏令', '悬赏令', True), (2, '悬赏令刷新', '悬赏令刷新', True)],                     
                 ]
                # 调用 markdown 函数生成数据
                 data = await markdown(params_items, buttons)
@@ -543,7 +579,7 @@ async def do_work_(bot: Bot, event: GroupMessageEvent, args: Tuple[Any, ...] = R
         buttons = [
             [(2, '悬赏令', '悬赏令', True), (2, '悬赏令刷新', '悬赏令刷新', True)],           
             [(2, '悬赏令接取', '悬赏令接取', False), (2, '悬赏令终止', '悬赏令终止', False)],
-            [(2, '悬赏令结算', '悬赏令结算', False), (2, '最后的悬赏令', '最后的悬赏令', True)],            
+            [(2, '悬赏令结算', '悬赏令结算', False)],            
         ]
        # 调用 markdown 函数生成数据
         data = await markdown(params_items, buttons)
@@ -552,5 +588,6 @@ async def do_work_(bot: Bot, event: GroupMessageEvent, args: Tuple[Any, ...] = R
 
 
 def get_work_msg(work_):
-    msg = f"{work_[0]},完成机率{work_[1]},基础报酬{work_[2]}修为,预计需{work_[3]}分钟{work_[4]}\n"
+    msg = f"{work_[0]}：完成机率{work_[1]}，基础报酬{work_[2]}修为，预计需{work_[3]}分钟，{work_[4]}\n"
     return msg
+

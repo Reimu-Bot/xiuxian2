@@ -514,7 +514,7 @@ impart_all = {
         "type": "impart_reap_per",
         "vale": 1
     },
-    "画屏春-雨润": {
+    "画屏春-玉润": {
         "id": 106,
         "type": "impart_reap_per",
         "vale": 1

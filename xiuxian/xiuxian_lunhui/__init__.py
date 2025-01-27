@@ -15,12 +15,12 @@ from ..xiuxian_utils.utils import (
 )
 
 __warring_help__ = """
-详情：
+#轮回详情：
 散尽修为，轮回重修，将万世的道果凝聚为极致天赋
-修为、功法、神通将被清空！！
-进入千世轮回：获得轮回灵根，可定制极品仙器(在做)
-进入万世轮回：获得真轮回灵根，可定制无上仙器(在做)
-自废修为：情况自身全部修为，仅搬血境可用
+修为，境界，攻修将被清空初始化！
+进入千世轮回：获得轮回灵根，额外提升攻修，（祭道境初期）
+进入万世轮回：获得真轮回灵根，额外提升攻修，（祭道境中期）
+自废修为：清空自身全部修为
 """.strip()
 
 cache_help_fk = {}
@@ -41,12 +41,14 @@ async def warring_help_(bot: Bot, event: GroupMessageEvent, session_id: int = Co
         await warring_help.finish()
     else:
         msg = __warring_help__
-        if XiuConfig().img:
-            pic = await get_msg_pic(msg)
-            cache_help_fk[session_id] = pic
-            await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment.image(pic))
-        else:
-            await bot.send_group_msg(group_id=int(send_group_id), message=msg)
+        params_items = [('msg', msg)]               
+        buttons = [
+            [(2, '进入千世轮回', '进入千世轮回 ', False)],            
+            [(2, '进入万世轮回', '进入万世轮回 ', False)],
+        ]
+       # 调用 markdown 函数生成数据
+        data = await markdown(params_items, buttons)
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
         await warring_help.finish()
 
 @lunhui.handle(parameterless=[Cooldown(at_sender=False)])
@@ -73,20 +75,22 @@ async def lunhui_(bot: Bot, event: GroupMessageEvent, session_id: int = CommandO
     
     if user_root == '轮回道果' :
         msg = "道友已是千世轮回之身！"
-        if XiuConfig().img:
-            pic = await get_msg_pic(f"@{event.sender.nickname}\n" + msg)
-            await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment.image(pic))
-        else:
-            await bot.send_group_msg(group_id=int(send_group_id), message=msg)
+        params_items = [('msg', msg)]               
+        buttons = [
+            [(2, '进入万世轮回', '进入万世轮回 ', False)],            
+        ]
+       # 调用 markdown 函数生成数据
+        data = await markdown(params_items, buttons)
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
         await lunhui.finish()
     
     if user_root == '真·轮回道果' :
         msg = "道友已是万世轮回之身！"
-        if XiuConfig().img:
-            pic = await get_msg_pic(f"@{event.sender.nickname}\n" + msg)
-            await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment.image(pic))
-        else:
-            await bot.send_group_msg(group_id=int(send_group_id), message=msg)
+        params_items = [('msg', msg)]               
+        buttons = []
+       # 调用 markdown 函数生成数据
+        data = await markdown(params_items, buttons)
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
         await lunhui.finish()
         
     if list_level_all.index(level) >= list_level_all.index(XiuConfig().lunhui_min_level):
@@ -96,17 +100,20 @@ async def lunhui_(bot: Bot, event: GroupMessageEvent, session_id: int = CommandO
         sql_message.update_levelrate(user_id, 0) #重置突破成功率
         sql_message.update_j_exp(user_id, now_exp) #重置用户修为
         sql_message.update_user_hp(user_id)  # 重置用户HP，mp，atk状态
-        sql_message.updata_user_main_buff(user_id, 0) #重置用户主功法
-        sql_message.updata_user_sub_buff(user_id, 0) #重置用户辅修功法
-        sql_message.updata_user_sec_buff(user_id, 0) #重置用户神通
+        sql_message.reset_user_drug_resistance(user_id) #重置用户耐药性        
+      #  sql_message.updata_user_main_buff(user_id, 0) #重置用户主功法
+      #  sql_message.updata_user_sub_buff(user_id, 0) #重置用户辅修功法
+      #  sql_message.updata_user_sec_buff(user_id, 0) #重置用户神通
         sql_message.update_user_atkpractice(user_id, 0) #重置用户攻修等级
-        sql_message.update_root(user_id, 6) #更换轮回灵根
+        sql_message.update_root1(user_id, 6) #更换轮回灵根
         msg = f"千世轮回磨不灭，重回绝颠谁能敌，恭喜大能{user_name}轮回成功！"
-        if XiuConfig().img:
-            pic = await get_msg_pic(f"@{event.sender.nickname}\n" + msg)
-            await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment.image(pic))
-        else:
-            await bot.send_group_msg(group_id=int(send_group_id), message=msg)
+        params_items = [('msg', msg)]               
+        buttons = [
+            [(2, '进入万世轮回', '进入万世轮回 ', False)],            
+        ]
+       # 调用 markdown 函数生成数据
+        data = await markdown(params_items, buttons)
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
         await lunhui.finish()
     else:
         msg = f"道友境界未达要求，进入千世轮回的最低境界为{XiuConfig().lunhui_min_level}"
@@ -141,21 +148,25 @@ async def twolun_(bot: Bot, event: GroupMessageEvent, session_id: int = CommandO
     
     if user_root == '真·轮回道果':
         msg = "道友已是万世轮回之身！"
-        if XiuConfig().img:
-            pic = await get_msg_pic(f"@{event.sender.nickname}\n" + msg)
-            await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment.image(pic))
-        else:
-            await bot.send_group_msg(group_id=int(send_group_id), message=msg)
-        await twolun.finish() 
+        params_items = [('msg', msg)]               
+        buttons = [
+            [(2, '我的修仙信息', '我的修仙信息 ', True)],            
+        ]
+       # 调用 markdown 函数生成数据
+        data = await markdown(params_items, buttons)
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
+        await lunhui.finish()
         
     if user_root != '轮回道果':
         msg = "道友还未轮回过，请先进入千世轮回！"
-        if XiuConfig().img:
-            pic = await get_msg_pic(f"@{event.sender.nickname}\n" + msg)
-            await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment.image(pic))
-        else:
-            await bot.send_group_msg(group_id=int(send_group_id), message=msg)
-        await twolun.finish() 
+        params_items = [('msg', msg)]               
+        buttons = [
+            [(2, '进入千世轮回', '进入千世轮回 ', True)],            
+        ]
+       # 调用 markdown 函数生成数据
+        data = await markdown(params_items, buttons)
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
+        await lunhui.finish()
     
     if list_level_all.index(level) >= list_level_all.index(XiuConfig().twolun_min_level) and user_root == '轮回道果':
         exp = user_msg['exp']
@@ -164,14 +175,17 @@ async def twolun_(bot: Bot, event: GroupMessageEvent, session_id: int = CommandO
         sql_message.update_levelrate(user_id, 0) #重置突破成功率
         sql_message.update_j_exp(user_id, now_exp) #重置用户修为
         sql_message.update_user_hp(user_id)  # 重置用户HP，mp，atk状态
-        sql_message.update_root(user_id, 7) #更换轮回灵根
+        sql_message.reset_user_drug_resistance(user_id) #重置用户耐药性        
+        sql_message.update_root1(user_id, 7) #更换轮回灵根
         msg = f"万世道果集一身，脱出凡道入仙道，恭喜大能{user_name}万世轮回成功！"
-        if XiuConfig().img:
-            pic = await get_msg_pic(f"@{event.sender.nickname}\n" + msg)
-            await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment.image(pic))
-        else:
-            await bot.send_group_msg(group_id=int(send_group_id), message=msg)
-        await twolun.finish()
+        params_items = [('msg', msg)]               
+        buttons = [
+            [(2, '我的修仙信息', '我的修仙信息 ', True)],            
+        ]
+       # 调用 markdown 函数生成数据
+        data = await markdown(params_items, buttons)
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
+        await lunhui.finish()
     else:
         msg = f"道友境界未达要求，万世轮回的最低境界为{XiuConfig().twolun_min_level}！"
         if XiuConfig().img:

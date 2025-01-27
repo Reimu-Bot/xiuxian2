@@ -50,7 +50,7 @@ TREASUREMSG_5 = [
 
 STORY = {
     "宝物": {
-        "type_rate": 300,
+        "type_rate": 320,
         "功法": {
             "type_rate": 50,
         },
@@ -65,17 +65,14 @@ STORY = {
         },
         "防具": {
             "type_rate": 35,
-        },
-     #   "炼丹炉": {
-     #       "type_rate": 5,
-     #   },        
+        },       
         "灵石": {
-            "type_rate": 100,
+            "type_rate": 120,
             "stone": 500000
         }
     },
     "战斗": {
-        "type_rate": 70,
+        "type_rate": 100,
         "Boss战斗": {
             "type_rate": 200,
             "Boss数据": {
@@ -104,11 +101,11 @@ STORY = {
             "cost": {
                 "exp": {
                     "type_rate": 50,
-                    "value": [0.003, 0.004, 0.005]
+                    "value": [0.001, 0.002, 0.003]
                 },
                 "hp": {
                     "type_rate": 100,
-                    "value": [0.3, 0.5, 0.7]
+                    "value": [0.2, 0.3, 0.5]
                 },
                 "stone": {
                     "type_rate": 50,
@@ -118,7 +115,7 @@ STORY = {
         },
     },
     "无事": {
-        "type_rate": 50,
+        "type_rate": 15,
     }
 }
 
@@ -240,14 +237,11 @@ def get_treasure_info(user_info, rift_rank):
         else:
             msg = '道友在秘境中获得一本书籍，翻开一看居然是绿野仙踪...'
 
-    elif rift_type == "炼丹炉":
-        danlu_info = get_danlu(user_info, rift_rank)
-        if danlu_info[0]:        
-            temp_msg = f"{danlu_info[1]['name']}!"
-            msg = random.choice(TREASUREMSG).format(temp_msg)
-            sql_message.send_back(user_info['user_id'], danlu_info[0], danlu_info[1]['name'], danlu_info[1]['type'], 1, 0)
-        else:
-            msg = '道友在秘境中获得一个香炉，研究了一番居然是破的...'
+  #  elif rift_type == "炼丹炉":
+  #      danlu_info = get_danlu(user_info, rift_rank)
+  #      temp_msg = f"{danlu_info[1]['name']}"
+  #      msg = random.choice(TREASUREMSG).format(temp_msg)
+  #      sql_message.send_back(user_info['user_id'], danlu_info[0], danlu_info[1]['name'], danlu_info[1]['type'], 1, 1)
 
     elif rift_type == "神通":
         give_sec_info = get_sec_info(user_info['level'], rift_rank)
@@ -341,8 +335,7 @@ def get_weapon(user_info, rift_rank=0):
     :return 法器ID, 法器信息json
     """
     weapon_data = items.get_data_by_item_type(['法器'])
-    filtered_weapon_data = {k: v for k, v in weapon_data.items() if v['level'] != "无上仙器"}  #排除无上  
-    weapon_id = get_id_by_rank(filtered_weapon_data, user_info['level'], rift_rank)
+    weapon_id = get_id_by_rank(weapon_data, user_info['level'], rift_rank)
     weapon_info = items.get_data_by_item_id(weapon_id)
     return weapon_id, weapon_info
 
@@ -356,7 +349,7 @@ def get_danlu(user_info, rift_rank=0):
     danlu_data = items.get_data_by_item_type(['炼丹炉'])
     danlu_id = get_id_by_rank(danlu_data, user_info['level'], rift_rank)
     danlu_info = items.get_data_by_item_id(danlu_id)
-    return danlu_id, dablu_info
+    return danlu_id, danlu_info
 
 def get_armor(user_info, rift_rank=0):
     """
@@ -366,8 +359,7 @@ def get_armor(user_info, rift_rank=0):
     :return 防具ID, 防具信息json
     """
     armor_data = items.get_data_by_item_type(['防具'])
-    filtered_armor_data = {k: v for k, v in armor_data.items() if v['level'] != "无上仙器"}  #排除无上
-    armor_id = get_id_by_rank(filtered_armor_data, user_info['level'], rift_rank)
+    armor_id = get_id_by_rank(armor_data, user_info['level'], rift_rank)
     armor_info = items.get_data_by_item_id(armor_id)
     return armor_id, armor_info
 

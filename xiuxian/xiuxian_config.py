@@ -14,26 +14,27 @@ def convert_rank(rank_name):
     convert_rank('江湖好手')[1] 返回境界列表
     """
     ranks = [
-        '江湖好手', # 57
-        '搬血境初期', '搬血境中期', '搬血境圆满',
-        '洞天境初期', '洞天境中期', '洞天境圆满', # 51
+        '江湖好手', # 59
+        '搬血境初期', '搬血境中期', '搬血境圆满', # 56
+        '洞天境初期', '洞天境中期', '洞天境圆满', # 53
         '化灵境初期', '化灵境中期', '化灵境圆满',
         '铭纹境初期', '铭纹境中期', '铭纹境圆满',
         '列阵境初期', '列阵境中期', '列阵境圆满',
-        '尊者境初期', '尊者境中期', '尊者境圆满', # 39
+        '尊者境初期', '尊者境中期', '尊者境圆满', # 41
         '神火境初期', '神火境中期', '神火境圆满',
         '真一境初期', '真一境中期', '真一境圆满',
         '圣祭境初期', '圣祭境中期', '圣祭境圆满',
-        '天神境初期', '天神境中期', '天神境圆满', # 27
+        '天神境初期', '天神境中期', '天神境圆满', # 29
         '虚道境初期', '虚道境中期', '虚道境圆满',
         '斩我境初期', '斩我境中期', '斩我境圆满',
         '遁一境初期', '遁一境中期', '遁一境圆满',
-        '至尊境初期', '至尊境中期', '至尊境圆满', # 15
+        '至尊境初期', '至尊境中期', '至尊境圆满', # 17
         '真仙境初期', '真仙境中期', '真仙境圆满',
         '仙王境初期', '仙王境中期', '仙王境圆满',
         '准帝境初期', '准帝境中期', '准帝境圆满',
         '仙帝境初期', '仙帝境中期', '仙帝境圆满',
-        '祭道境初期', '祭道境中期', '祭道境圆满' # 0
+        '祭道境初期', '祭道境中期', '祭道境圆满',  #2
+        '天道', '至高'# 0
     ]
     
     if rank_name in ranks:
@@ -85,10 +86,10 @@ class XiuConfig:
         self.level_punishment_floor = 10  # 突破失败扣除修为，惩罚下限（百分比）
         self.level_punishment_limit = 35  # 突破失败扣除修为，惩罚上限(百分比)
         self.level_up_probability = 0.2  # 突破失败增加当前境界突破概率的比例
-        self.sign_in_lingshi_lower_limit = 50000  # 每日签到灵石下限
-        self.sign_in_lingshi_upper_limit = 100000  # 每日签到灵石上限
+        self.sign_in_lingshi_lower_limit = 250000  # 每日签到灵石下限
+        self.sign_in_lingshi_upper_limit = 500000  # 每日签到灵石上限
         self.beg_max_level = "铭纹境圆满" # 仙途奇缘能领灵石最高境界
-        self.beg_max_days = 3 # 仙途奇缘能领灵石最多天数
+        self.beg_max_days = 7 # 仙途奇缘能领灵石最多天数
         self.beg_lingshi_lower_limit = 300000  # 仙途奇缘灵石下限
         self.beg_lingshi_upper_limit = 600000  # 仙途奇缘灵石上限
         self.tou = 100000  # 偷灵石惩罚
@@ -97,8 +98,8 @@ class XiuConfig:
         self.tou_upper_limit = 0.50  # 偷灵石上限(百分比)
         self.remake = 100000  # 重入仙途的消费
         self.max_stamina = 300 # 体力上限
-        self.lunhui_min_level = "祭道境圆满" # 千世轮回最低境界
-        self.twolun_min_level = "祭道境圆满" # 万世轮回最低境界
+        self.lunhui_min_level = "祭道境初期" # 千世轮回最低境界
+        self.twolun_min_level = "祭道境中期" # 万世轮回最低境界
         self.del_boss_id = []  # 支持非管理员和超管天罚boss
         self.gen_boss_id = []  # 支持非管理员和超管生成boss
         self.merge_forward_send = False # 消息合并转发,True是合并转发，False是长图发送，建议长图发送

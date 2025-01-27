@@ -6,9 +6,9 @@ import json
 
 config = get_boss_config()
 JINGJIEEXP = {  # 数值为中期和圆满的平均值
-   # "搬血境": [1000, 2000, 3000],
-   # "洞天境": [6000, 8000.10000],
-   # "化灵境": [30000, 60000, 90000],
+    "搬血境": [1000, 2000, 3000],
+    "洞天境": [6000, 8000.10000],
+    "化灵境": [30000, 60000, 90000],
     "铭纹境": [144000, 160000, 176000],
     "列阵境": [352000, 284000, 416000],
     "尊者境": [832000, 896000, 960000],
@@ -54,6 +54,18 @@ def get_boss_exp(boss_jj):
     else:
         return None
 
+def get_boss_expgo(boss_jj):
+    if boss_jj in JINGJIEEXP:
+        bossexp = random.choice(JINGJIEEXP[boss_jj])
+        bossinfo = {
+            '气血': bossexp * config["世界Boss倍率"]["气血"],
+            '总血量': bossexp * config["世界Boss倍率"]["气血"],
+            '真元': bossexp * config["世界Boss倍率"]["真元"],
+            '攻击': int(bossexp * config["世界Boss倍率"]["攻击"])
+        }
+        return bossinfo
+    else:
+        return None
 
 def createboss():
     top_user_info = sql_message.get_top1_user()
@@ -81,4 +93,14 @@ def createboss_jj(boss_jj, boss_name=None):
     else:
         return None
 
-
+def create_boss_for_level(boss_jj: str):
+    """根据指定境界生成一个 Boss"""
+    boss_exp = get_boss_expgo(boss_jj)
+    boss_info = {
+        "name": random.choice(config["Boss名字"]),  # 随机选择 Boss 名字
+        "jj": boss_jj,  # 当前 Boss 的境界
+        "exp": random.choice(JINGJIEEXP[boss_jj]),  # 随机选取该境界的经验
+        "stone": random.choice(config["Boss灵石"][boss_jj])  # 灵石奖励
+    }
+    boss_info.update(boss_exp)
+    return boss_info

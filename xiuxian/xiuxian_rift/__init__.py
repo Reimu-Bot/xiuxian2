@@ -50,7 +50,7 @@ __rift_help__ = f"""
 \n><qqbot-cmd-input text=\"探索秘境\" show=\"探索秘境\" reference=\"false\" />探索秘境获取随机奖励
 \n><qqbot-cmd-input text=\"秘境结算\" show=\"秘境结算\" reference=\"false\" />:结算秘境奖励
 \n><qqbot-cmd-input text=\"秘境探索终止\" show=\"秘境终止\" reference=\"false\" />:终止秘境事件
-\n>每天早八生成一个随机等级的秘境
+\n>每天早八晚八各生成一个随机等级的秘境
 """.strip()
 
 #秘境帮助
@@ -70,7 +70,8 @@ async def save_rift_():
     logger.opt(colors=True).info(f"<green>rift数据已保存</green>")
 
 # 定时任务生成群秘境
-@set_rift.scheduled_job("cron", hour=8, minute=0)
+@set_rift.scheduled_job("cron", hour=7, minute=58)
+@set_rift.scheduled_job("cron", hour=19, minute=58)
 async def set_rift_():
     global group_rift
     if groups:
@@ -84,8 +85,7 @@ async def set_rift_():
             rift.time = config['rift'][rift.name]['time']
             group_rift[group_id] = rift
          #   msg = f"秘境已刷新，野生的{rift.name}已开启！可探索次数：{rift.count}次，请诸位道友发送 探索秘境 来加入吧！"
-         #   pic = await get_msg_pic(msg)  #
-         #   await bot.send_group_msg(group_id=int(group_id), message=MessageSegment.image(pic))
+            logger.opt(colors=True).info(f"<green>秘境已刷新，野生的已开启！可探索次数次，请诸位道友发送 探索秘境 来加入吧！</green>")
 
 
 
@@ -201,7 +201,8 @@ async def _(bot: Bot, event: GroupMessageEvent):
             data = await markdown(params_items, buttons)
             await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
             await explore_rift.finish()
-        if user_id in group_rift[group_id].l_user_id:
+        rift_num = user_info['is_mijing']
+        if rift_num > 1:
             msg = '道友已经参加过本次秘境啦，请把机会留给更多的道友！'
             params_items = [('msg', msg)]               
             buttons = []
@@ -210,7 +211,7 @@ async def _(bot: Bot, event: GroupMessageEvent):
             await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
             await explore_rift.finish()
 
-        group_rift[group_id].l_user_id.append(user_id)
+        sql_message.update_mijing(user_id, 1, 1)
         group_rift[group_id].count -= 1
         user_vip_days = sql_message.check_vip_status(user_id)
         if user_vip_days > 0:
@@ -382,11 +383,13 @@ async def break_rift_(bot: Bot, event: GroupMessageEvent):
     bot, send_group_id = await assign_bot(bot=bot, event=event)
     isUser, user_info, msg = check_user(event)
     if not isUser:
-        if XiuConfig().img:
-            pic = await get_msg_pic(f"@{event.sender.nickname}\n" + msg)
-            await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment.image(pic))
-        else:
-            await bot.send_group_msg(group_id=int(send_group_id), message=msg)
+        params_items = [('msg', msg)]               
+        buttons = [
+            [(2, '我要修仙', '我要修仙', True)],            
+        ]
+       # 调用 markdown 函数生成数据
+        data = await markdown(params_items, buttons)
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
         await break_rift.finish()
     user_id = user_info['user_id']
     group_id = str(114514)
@@ -401,11 +404,11 @@ async def break_rift_(bot: Bot, event: GroupMessageEvent):
 
     is_type, msg = check_user_type(user_id, 3)  # 需要在秘境的用户
     if not is_type:
-        if XiuConfig().img:
-            pic = await get_msg_pic(f"@{event.sender.nickname}\n" + msg)
-            await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment.image(pic))
-        else:
-            await bot.send_group_msg(group_id=int(send_group_id), message=msg)
+        params_items = [('msg', msg)]               
+        buttons = []
+       # 调用 markdown 函数生成数据
+        data = await markdown(params_items, buttons)
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
         await break_rift.finish()
     else:
         user_id = user_info['user_id']
@@ -415,11 +418,13 @@ async def break_rift_(bot: Bot, event: GroupMessageEvent):
         except:
             msg = '发生未知错误！'
             sql_message.do_work(user_id, 0)
-            if XiuConfig().img:
-                pic = await get_msg_pic(f"@{event.sender.nickname}\n" + msg)
-                await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment.image(pic))
-            else:
-                await bot.send_group_msg(group_id=int(send_group_id), message=msg)
+            params_items = [('msg', msg)]               
+            buttons = [
+                [(2, '秘境帮助', '秘境帮助', True)],            
+            ]
+           # 调用 markdown 函数生成数据
+            data = await markdown(params_items, buttons)
+            await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
             await break_rift.finish()
 
         sql_message.do_work(user_id, 0)

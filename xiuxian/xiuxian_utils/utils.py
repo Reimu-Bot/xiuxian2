@@ -491,6 +491,13 @@ def number_to(num):
     递归实现，精确为最大单位值 + 小数点后一位
     处理科学计数法表示的数值
     '''
+    # 确保 num 为数值类型，如果 num 是字符串则转换为数值
+    if isinstance(num, str):
+        try:
+            num = float(num)  # 尝试将字符串转换为浮动数
+        except ValueError:
+            raise ValueError(f"无法将字符串转换为数值: {num}")
+
     def strofsize(num, level):
         if level >= 29:
             return num, level
@@ -505,13 +512,20 @@ def number_to(num):
              '恒河沙', '阿僧祗', '那由他', '不思议', '无量大', '万无量大', '亿无量大', 
              '兆无量大', '京无量大', '垓无量大', '秭无量大', '穰无量大', '沟无量大', 
              '涧无量大', '正无量大', '载无量大', '极无量大']
+    
     # 处理科学计数法
     if "e" in str(num):
         num = float(f"{num:.1f}")
-    num, level = strofsize(num, 0)
+    
+    # 确保 num 是一个数值（可能是负数）
+    is_negative = num < 0
+    num = abs(num)  # 使用绝对值计算大小，以便获得单位
+    num, level = strofsize(num, 0)   
+
     if level >= len(units):
         level = len(units) - 1
-    return f"{round(num, 1)}{units[level]}"
+
+    return f"{'-' if is_negative else ''}{round(num, 1)}{units[level]}"
 
 async def pic_msg_format(msg, event):
     user_name = (

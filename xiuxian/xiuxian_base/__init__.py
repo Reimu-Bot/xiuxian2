@@ -55,10 +55,12 @@ vip_get = on_command("修仙兑换", priority=6, permission=GROUP, block=True)
 close_xiuxian = on_fullmatch("修仙开关", priority=12, permission=GROUP, block=True)
 helps_in = on_fullmatch("修行帮助", priority=12, permission=GROUP, block=True)
 newhelps_in = on_fullmatch("新手攻略", priority=12, permission=GROUP, block=True)
-rank = on_command("排行榜", aliases={"修仙排行榜", "sss灵石排行榜", "战力排行榜", "境界排行榜", "宗门排行榜"},
+rank = on_command("排行榜", aliases={"修仙排行榜", "灵石排行榜", "战力排行榜", "境界排行榜", "宗门排行榜"},
                   priority=7, permission=GROUP, block=True)
 remaname = on_command("修改道号", priority=5, permission=GROUP, block=True)
-get_gift = on_fullmatch("sss领取修仙礼包", priority=6, permission=GROUP, block=True)
+gmremaname = on_command("更新道号", permission=SUPERUSER, priority=10, block=True)
+getuser_id = on_command("查询道友id", permission=SUPERUSER, priority=10, block=True)
+get_gift = on_fullmatch("xf领取修仙礼包", priority=6, permission=GROUP, block=True)
 level_up = on_fullmatch("突破", priority=6, permission=GROUP, block=True)
 level_up_dr = on_fullmatch("渡厄突破", priority=7, permission=GROUP, block=True)
 level_up_drjd = on_command("渡厄金丹突破", aliases={"金丹突破"}, priority=7, permission=GROUP, block=True)
@@ -78,11 +80,12 @@ set_xiuxian = on_command("那么就启用修仙功能", aliases={'那么就禁�
 user_leveluprate = on_command('我的突破概率', aliases={'突破概率'}, priority=5, permission=GROUP, block=True)
 user_stamina = on_command('我的体力', aliases={'修仙体力'}, priority=5, permission=GROUP, block=True)
 xiuxian_updata_level = on_fullmatch('修仙适配', priority=15, permission=GROUP, block=True)
-xiuxian_uodata_data = on_fullmatch('更新记录', priority=15, permission=GROUP, block=True)
+xiuxian_uodata_data = on_fullmatch('修仙更新记录', priority=15, permission=GROUP, block=True)
 lunhui = on_fullmatch('轮回重修帮助', priority=15, permission=GROUP, block=True)
 level_help = on_command('境界列表', priority=15, permission=GROUP,block=True)
 level_helps = on_command('灵根列表', priority=15, permission=GROUP,block=True)
 level_helpss = on_command('品阶列表', priority=15, permission=GROUP,block=True)
+get_total_member = on_command("修仙总人数", permission=SUPERUSER, priority=10, block=True)
 
 __xiuxian_notes__ = f"""
 \n```\n☆------------[修仙菜单]------------☆\n```
@@ -99,17 +102,17 @@ __xiuxian_notes__ = f"""
 \n#宗门
 \n><qqbot-cmd-input text="宗门帮助" show="宗门帮助" reference="false" /> | <qqbot-cmd-input text="我的宗门" show="我的宗门" reference="false" /> | <qqbot-cmd-input text="宗门列表" show="宗门列表" reference="false" />
 \n#坊市交易
-\n><qqbot-cmd-input text="坊市帮助" show="坊市帮助" reference="false" /> | <qqbot-cmd-input text="查看坊市" show="查看坊市" reference="false" /> | <qqbot-cmd-input text="仙市集会" show="仙市集会" reference="false" /> | <qqbot-cmd-input text="我的背包" show="我的背包" reference="false" /> | <qqbot-cmd-input text="炼金" show="炼金 物品" reference="false" /> | <qqbot-cmd-input text="赠送修仙道具" show="赠送物品" reference="false" />
+\n><qqbot-cmd-input text="坊市帮助" show="坊市帮助" reference="false" /> | <qqbot-cmd-input text="查看坊市" show="查看坊市" reference="false" /> | <qqbot-cmd-input text="仙市集会" show="仙市集会" reference="false" /> | <qqbot-cmd-input text="我的背包" show="我的背包" reference="false" /> | <qqbot-cmd-input text="炼金" show="炼金 物品" reference="false" /> | <qqbot-cmd-input text="合成" show="合成仙器" reference="false" /> | <qqbot-cmd-input text="抽取技能书" show="抽取技能书" reference="false" /> | <qqbot-cmd-input text="抽取装备" show="抽取装备" reference="false" /> | <qqbot-cmd-input text="赠送修仙道具" show="赠送物品" reference="false" />
 \n#悬赏令
 \n><qqbot-cmd-input text="悬赏令刷新" show="刷新悬赏" reference="false" /> | <qqbot-cmd-input text="悬赏令终止" show="终止悬赏" reference="false" /> | <qqbot-cmd-input text="悬赏令结算" show="结算悬赏" reference="false" /> | <qqbot-cmd-input text="悬赏令接取" show="悬赏令接取 编号" reference="false" /> 
 \n#灵田炼丹
 \n><qqbot-cmd-input text="灵田帮助" show="灵田帮助" reference="false" /> | <qqbot-cmd-input text="炼丹帮助" show="炼丹帮助" reference="false" />
 \n#除妖Boss
-\n><qqbot-cmd-input text="查询妖界boss" show="Boss列表" reference="false" /> | <qqbot-cmd-input text="讨伐妖界boss" show="讨伐妖界boss" reference="false" /> | <qqbot-cmd-input text="妖界商店" show="妖界商店" reference="false" /> | <qqbot-cmd-input text="妖界灵气兑换" show="灵气兑换" reference="false" />
+\n><qqbot-cmd-input text="查询妖界boss" show="Boss列表" reference="false" /> | <qqbot-cmd-input text="武神塔挑战" show="武神塔挑战" reference="false" />  | <qqbot-cmd-input text="妖界塔挑战" show="妖界塔挑战" reference="false" /> | <qqbot-cmd-input text="讨伐妖界boss" show="讨伐妖界boss" reference="false" /> | <qqbot-cmd-input text="妖界商店" show="妖界商店" reference="false" /> | <qqbot-cmd-input text="灵气兑换" show="灵气兑换" reference="false" />
 \n#传承卡图
 \n><qqbot-cmd-input text="传承抽卡" show="传承抽卡" reference="false" /> | <qqbot-cmd-input text="传承背包" show="传承背包" reference="false" /> | <qqbot-cmd-input text="传承卡图" show="传承卡图" reference="false" />
-\n<qqbot-cmd-input text="新手攻略" show="新手攻略" reference="false" /> | <qqbot-cmd-input text="782240197" show="官方Q群" reference="false" /> | <qqbot-cmd-input text="赞助灵梦" show="赞助灵梦" reference="false" /> \n<qqbot-cmd-input text="领取抽卡次数" show="点击领取国庆限定礼包" reference="false" /> 
-\n<qqbot-cmd-input text="修仙开关" show="修仙开关" reference="false" />：群管理员开启/关闭修仙功能。
+\n<qqbot-cmd-input text="884303240" show="官方Q群" reference="false" /> | <qqbot-cmd-input text="领取修仙礼包" show="领取修仙礼包" reference="false" />  | <qqbot-cmd-input text="修仙更新记录" show="修仙更新公告" reference="false" /> 
+\n<qqbot-cmd-input text="修仙开关" show="修仙开关" reference="false" />：群管理员开启/关闭修仙功能。 
 """.strip()
 
 #\n<qqbot-cmd-input text="赞助灵梦" show="赞助灵梦" reference="false" /> 
@@ -120,7 +123,7 @@ __xiuxian_helps__ = f"""
 \n><qqbot-cmd-input text="我要修仙" show="我要修仙" reference="false" />:进入修仙模式
 \n><qqbot-cmd-input text="我的修仙信息" show="我的修仙信息" reference="false" />:获取修仙数据
 \n><qqbot-cmd-input text="重入仙途" show="重入仙途" reference="false" />:重置灵根数据,每次{XiuConfig().remake}灵石
-\n><qqbot-cmd-input text="修改道号" show="修改道号" reference="false" />:修改你的道号,首次修改无法费用，以后每次20万灵石。
+\n><qqbot-cmd-input text="修改道号" show="修改道号" reference="false" />:修改你的道号,首次修改无需费用，以后每次50万灵石。
 \n><qqbot-cmd-input text="突破" show="突破" reference="false" />:修为足够后,可突破境界（一定几率失败）
 \n><qqbot-cmd-input text="闭关" show="闭关" reference="false" />：闭关增加修为
 \n><qqbot-cmd-input text="修仙排行榜" show="排行榜" reference="false" />:修仙排行榜,灵石排行榜,战力排行榜,宗门排行榜
@@ -156,12 +159,17 @@ __close_xiuxian__ = f"""
 
 __xiuxian_updata_data__ = f"""
 详情：
-#更新2024.8.18
-1.修仙上线了
+#更新2025.1.27
+1.修改秘境，每日2次秘境机会，减少秘境灵力和血量，减少无功而返几率
+2.增加秘境刷新符，悬赏刷新符
+3.增加道侣
+#更新2025.1.7
+1.抽取武器增加无上仙器
 """.strip()
 
 __level_help__ = f"""
-                       --境界列表--
+                    --境界列表--
+                     天道——至高
            祭道境——仙帝境——准帝境——仙王境
            真仙境——至尊境——遁一境——斩我境
            虚道境——天神境——圣祭境——真一境
@@ -231,7 +239,7 @@ class PM_HONGBAO:
 pmhongbao = PM_HONGBAO()
 
 # 重置每日签到
-@scheduler.scheduled_job("cron", hour=0, minute=0)
+@scheduler.scheduled_job("cron", hour=23, minute=57)
 async def xiuxian_sing_():
     sql_message.sign_remake()
     logger.opt(colors=True).info(f"<green>每日修仙签到重置成功！</green>")
@@ -294,7 +302,7 @@ async def run_xiuxian_(bot: Bot, event: GroupMessageEvent):
             
             isUser, user_msg, msg = check_user(event)
             if user_msg['hp'] is None or user_msg['hp'] == 0 or user_msg['hp'] == 0:
-                sql_message.update_user_hp(user_id)
+                sql_message.update_user_hp(user_id)  # 重置用户HP，mp，atk状态
             await asyncio.sleep(1)
             msg = "耳边响起一个神秘人的声音：不要忘记仙途奇缘！!\n不知道怎么玩的话可以发送 修仙帮助 喔！！"
             params_items = [('msg', msg)]               
@@ -356,11 +364,11 @@ async def help_in_(bot: Bot, event: GroupMessageEvent, session_id: int = Command
         title = "修仙菜单"
         msg = __xiuxian_notes__
         buttons = [
-            [(2, '✅修行', '修行帮助', True), (2, '✅秘境', '秘境帮助', True)],
-            [(2, '✅灵庄', '灵庄帮助', True), (2, '✅炼丹', '炼丹帮助', True)],
-            [(2, '✅宗门', '宗门帮助', True), (2, '✅坊市', '坊市帮助', True)],
-            [(2, '✅悬赏', '悬赏令帮助', True), (2, '✅灵田', '灵田帮助', True)],
-            [(2, '✅除妖', '妖界boss帮助', True), (2, '✅传承', '传承帮助', True)]
+            [(2, '👼修行', '修行帮助', True), (2, '🏝秘境', '秘境帮助', True)],
+            [(2, '💰灵庄', '灵庄帮助', True), (2, '💊炼丹', '炼丹帮助', True)],
+            [(2, '🚪宗门', '宗门帮助', True), (2, '🗡除妖', '妖界boss帮助', True), (2, '🏛️坊市', '坊市帮助', True)],
+            [(2, '✅悬赏', '悬赏令帮助', True), (2, '🧩传承', '传承帮助', True), (2, '🌿灵田', '灵田帮助', True)],
+            [(2, '🆕新手攻略', '新手攻略', True), (2, '🍻邀请奖励', '修仙邀请帮助', True), (2, '💎赞助灵梦', '赞助灵梦', True)]
         ]
         
         params_items = [('msg', msg)]
@@ -383,11 +391,11 @@ async def helps_in_(bot: Bot, event: GroupMessageEvent, session_id: int = Comman
         title = "修行菜单"
         msg = __xiuxian_helps__
         buttons = [
-            [(2, '✅修行', '修行帮助', True), (2, '✅秘境', '秘境帮助', True)],
-            [(2, '✅灵庄', '灵庄帮助', True), (2, '✅炼丹', '炼丹帮助', True)],
-            [(2, '✅宗门', '宗门帮助', True), (2, '✅交易', '交易帮助', True)],
-            [(2, '✅悬赏', '悬赏帮助', True), (2, '✅功法', '灵田帮助', True)],
-            [(2, '✅除妖', '妖界boss帮助', True), (2, '✅传承', '传承帮助', True)]
+            [(2, '👼修行', '修行帮助', True), (2, '🏝秘境', '秘境帮助', True)],
+            [(2, '💰灵庄', '灵庄帮助', True), (2, '💊炼丹', '炼丹帮助', True)],
+            [(2, '🚪宗门', '宗门帮助', True), (2, '🏛️坊市', '坊市帮助', True)],
+            [(2, '✅悬赏', '悬赏令帮助', True), (2, '🌿灵田', '灵田帮助', True)],
+            [(2, '🗡除妖', '妖界boss帮助', True), (2, '🧩传承', '传承帮助', True)]
         ]
         
         params_items = [('msg', msg)]
@@ -529,6 +537,16 @@ async def restart_(bot: Bot, event: GroupMessageEvent, state: T_State):
         await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
         await restart.finish()
 
+    if user_info['root_type'] in ['轮回道果', '真·轮回道果']:
+        msg = "轮回灵根已无法重入仙途！"
+        params_items = [('msg', msg)]               
+        buttons = [            
+            [(2, '重入仙途', '重入仙途', False)],
+        ]
+        data = await markdown(params_items, buttons)
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
+        await restart.finish()
+
     state["user_id"] = user_info['user_id']  # 将用户信息存储在状态中
 
     linggen_options = []
@@ -649,9 +667,28 @@ async def remaname_(bot: Bot, event: GroupMessageEvent, args: Message = CommandA
     user_id = user_info['user_id']
     username = user_info['user_name'] 
     user_name = args.extract_plain_text().strip()
-    len_username = len(user_name.encode('gbk'))
-
-    blocked_words = ["涉及国家机密", "共产党", "xjp", "习近平", "中共", "独立", "李德胜", "毛泽东", "江泽民", "蛤", "熊"]  # 在这里添加你需要的屏蔽词
+    ban_userid = ['449435523','859210847','863211812','327461167']
+    if str(user_id) in ban_userid:
+        msg = "道友暂时无法修改道号，请联系管理员！！"
+        params_items = [('msg', msg)]               
+        buttons = [
+            [(2, '联系管理员', '185110524', False)],
+        ]
+        data = await markdown(params_items, buttons)
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data}))
+        await remaname.finish()
+    try:
+        len_username = len(user_name.encode('gbk'))  # 尝试 GBK 编码
+    except UnicodeEncodeError:
+        msg = "道友的道号有违仙道，请重新修改！"
+        params_items = [('msg', msg)]
+        buttons = [
+            [(2, '✅修改道号', '修改道号', False)],
+        ]
+        data = await markdown(params_items, buttons)
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data}))
+        await remaname.finish()
+    blocked_words = ["涉及国家机密", "共产党", "xjp", "习近平", "中共", "独立", "李德胜", "毛泽东", "江泽民", "死光", "蛤", "熊", "王洪文", "尼玛比", "林彪", "傻逼", "叶青", "江泽民"]  # 在这里添加你需要的屏蔽词
 
     # 检查道号是否包含屏蔽词
     if any(bad_word in user_name for bad_word in blocked_words):
@@ -711,8 +748,8 @@ async def remaname_(bot: Bot, event: GroupMessageEvent, args: Message = CommandA
     else:   # 获取用户灵石数量
         user_stones = user_info['stone']
         
-        if user_stones < 200000:
-            msg = f"修改道号所需灵石：200000，道友<qqbot-cmd-input text=\"我的灵石\" show=\"灵石\" reference=\"false\" />不足，暂时无法修改。"
+        if user_stones < 500000:
+            msg = f"修改道号所需灵石：500000，道友<qqbot-cmd-input text=\"我的灵石\" show=\"灵石\" reference=\"false\" />不足，暂时无法修改。"
             params_items = [('msg', msg)]
             buttons = [
                 [(2, '✅修改道号', '修改道号', False)],
@@ -723,7 +760,7 @@ async def remaname_(bot: Bot, event: GroupMessageEvent, args: Message = CommandA
             await remaname.finish()
         else:
             # 扣除 20 万灵石
-            sql_message.update_ls(user_id, 200000, 2)     
+            sql_message.update_ls(user_id, 500000, 2)     
             msg = sql_message.update_user_name(user_id, user_name)
             params_items = [('msg', msg)]               
             buttons = [
@@ -734,6 +771,44 @@ async def remaname_(bot: Bot, event: GroupMessageEvent, args: Message = CommandA
             await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data}))
             await remaname.finish()
 
+@gmremaname.handle(parameterless=[Cooldown(at_sender=False)])
+async def gmremaname_(bot: Bot, event: GroupMessageEvent, args: Message = CommandArg()):
+    """更新道号"""
+    bot, send_group_id = await assign_bot(bot=bot, event=event)
+    isUser, user_info, msg = check_user(event)
+    args = args.extract_plain_text().split()
+    user_name = args[1]
+    oldname = args[0]
+    user_info1 = sql_message.get_user_info_with_name(oldname) 
+    user_id = user_info1['user_id']
+        # 更新用户名
+    msg = sql_message.update_user_name(user_id, user_name)
+    params_items = [('msg', msg)]               
+    buttons = [
+        [(2, '✅更新道号', '更新道号', False), (2, '✅我的状态', '我的状态', True)],
+    ]
+    data = await markdown(params_items, buttons)
+    await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
+    await gmremaname.finish()        
+
+
+@getuser_id.handle(parameterless=[Cooldown(at_sender=False)])
+async def getuser_id_(bot: Bot, event: GroupMessageEvent, args: Message = CommandArg()):
+    """通过道号获得uid"""
+    bot, send_group_id = await assign_bot(bot=bot, event=event)
+    isUser, user_info, msg = check_user(event)
+    args = args.extract_plain_text().split()
+    oldname = args[0]
+    user_info1 = sql_message.get_user_info_with_name(oldname) 
+    user_id = user_info1['user_id']
+    msg = f'道友{oldname}的user_id是：{user_id}'
+    params_items = [('msg', msg)]               
+    buttons = [
+        [(2, '✅更新道号', '更新道号', False), (2, '✅我的状态', '我的状态', True)],
+    ]
+    data = await markdown(params_items, buttons)
+    await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
+    await getuser_id.finish()    
 
 @level_up.handle(parameterless=[Cooldown(at_sender=False)])
 async def level_up_(bot: Bot, event: GroupMessageEvent):
@@ -752,7 +827,12 @@ async def level_up_(bot: Bot, event: GroupMessageEvent):
     user_id = user_info['user_id']
     if user_info['hp'] is None:
         # 判断用户气血是否为空
-        sql_message.update_user_hp(user_id)
+        if user_info['root_type'] == '轮回道果':
+            sql_message.update_user_hp2(user_id) 
+        elif user_info['root_type'] == '真·轮回道果':
+            sql_message.update_user_hp3(user_id)
+        else:
+            sql_message.update_user_hp(user_id)  # 重置用户HP，mp，atk状态
     user_msg = sql_message.get_user_info_with_id(user_id)  # 用户信息
     user_leveluprate = int(user_msg['level_up_rate'])  # 用户失败次数加成
     level_cd = user_msg['level_up_cd']
@@ -795,12 +875,7 @@ async def level_up_(bot: Bot, event: GroupMessageEvent):
         buttons = [[(2, '渡厄突破', '渡厄突破', True), (2, '直接突破', '直接突破', True)]]
         # 调用 markdown 函数生成数据
         data = await markdown(params_items, buttons)
-        if XiuConfig().img:
-            pic = await img.save(title, msg)
-            cache_help[session_id] = pic
-            await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment.image(pic))
-        else:
-            await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data}))
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data}))
         await level_up.finish()
     else:
         msg = f"由于检测到背包没有【渡厄丹】，突破已经准备就绪\n请发送，<qqbot-cmd-input text=\"直接突破\" show=\"直接突破\" reference=\"false\" />来突破！请注意，本次突破失败将会损失部分修为！\n本次突破概率为：{level_rate + user_leveluprate + number}% "
@@ -808,12 +883,7 @@ async def level_up_(bot: Bot, event: GroupMessageEvent):
         buttons = [[(2, '直接突破', '直接突破', True), (2, '修炼', '修炼', True)]]
         # 调用 markdown 函数生成数据
         data = await markdown(params_items, buttons) 
-        if XiuConfig().img:
-            pic = await img.save(title, msg)
-            cache_help[session_id] = pic
-            await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment.image(pic))
-        else:
-            await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data}))
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data}))
         await level_up.finish()
 
 
@@ -834,7 +904,12 @@ async def level_up_zj_(bot: Bot, event: GroupMessageEvent):
     user_id = user_info['user_id']
     if user_info['hp'] is None:
         # 判断用户气血是否为空
-        sql_message.update_user_hp(user_id)
+        if user_info['root_type'] == '轮回道果':
+            sql_message.update_user_hp2(user_id) 
+        elif user_info['root_type'] == '真·轮回道果':
+            sql_message.update_user_hp3(user_id)
+        else:
+            sql_message.update_user_hp(user_id)  # 重置用户HP，mp，atk状态
     user_msg = sql_message.get_user_info_with_id(user_id)  # 用户信息
     level_cd = user_msg['level_up_cd']
     if level_cd:
@@ -851,12 +926,7 @@ async def level_up_zj_(bot: Bot, event: GroupMessageEvent):
             ]
             # 调用 markdown 函数生成数据
             data = await markdown(params_items, buttons)
-            if XiuConfig().img:
-                pic = await img.save(title, msg)
-                cache_help[session_id] = pic
-                await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment.image(pic))
-            else:
-                await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data}))
+            await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data}))
             await level_up_zj.finish()
     else:
         pass
@@ -896,12 +966,7 @@ async def level_up_zj_(bot: Bot, event: GroupMessageEvent):
         params_items = [('msg', msg)]               
         buttons = []
         data = await markdown(params_items, buttons)
-        if XiuConfig().img:
-            pic = await img.save(title, msg)
-            cache_help[session_id] = pic
-            await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment.image(pic))
-        else:
-            await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data}))
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data}))
         await level_up_zj.finish()
 
     elif type(le) == list:
@@ -910,7 +975,12 @@ async def level_up_zj_(bot: Bot, event: GroupMessageEvent):
         sql_message.update_power2(user_id)  # 更新战力
         sql_message.updata_level_cd(user_id)  # 更新CD
         sql_message.update_levelrate(user_id, 0)
-        sql_message.update_user_hp(user_id)  # 重置用户HP，mp，atk状态
+        if user_info['root_type'] == '轮回道果':
+            sql_message.update_user_hp2(user_id) 
+        elif user_info['root_type'] == '真·轮回道果':
+            sql_message.update_user_hp3(user_id)
+        else:
+            sql_message.update_user_hp(user_id)  # 重置用户HP，mp，atk状态
         msg = f"恭喜道友突破{le[0]}成功！"
         params_items = [('msg', msg)]               
         buttons = [
@@ -918,12 +988,7 @@ async def level_up_zj_(bot: Bot, event: GroupMessageEvent):
         ]
         # 调用 markdown 函数生成数据
         data = await markdown(params_items, buttons)
-        if XiuConfig().img:
-            pic = await img.save(title, msg)
-            cache_help[session_id] = pic
-            await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment.image(pic))
-        else:
-            await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data}))
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data}))
         await level_up_zj.finish()
     else:
         # 最高境界
@@ -953,7 +1018,12 @@ async def level_up_drjd_(bot: Bot, event: GroupMessageEvent):
     user_id = user_info['user_id']
     if user_info['hp'] is None:
         # 判断用户气血是否为空
-        sql_message.update_user_hp(user_id)
+        if user_info['root_type'] == '轮回道果':
+            sql_message.update_user_hp2(user_id) 
+        elif user_info['root_type'] == '真·轮回道果':
+            sql_message.update_user_hp3(user_id)
+        else:
+            sql_message.update_user_hp(user_id)  # 重置用户HP，mp，atk状态
     user_msg = sql_message.get_user_info_with_id(user_id)  # 用户信息
     level_cd = user_msg['level_up_cd']
     if level_cd:
@@ -1062,7 +1132,12 @@ async def level_up_drjd_(bot: Bot, event: GroupMessageEvent):
         sql_message.update_power2(user_id)  # 更新战力
         sql_message.updata_level_cd(user_id)  # 更新CD
         sql_message.update_levelrate(user_id, 0)
-        sql_message.update_user_hp(user_id)  # 重置用户HP，mp，atk状态
+        if user_info['root_type'] == '轮回道果':
+            sql_message.update_user_hp2(user_id) 
+        elif user_info['root_type'] == '真·轮回道果':
+            sql_message.update_user_hp3(user_id)
+        else:
+            sql_message.update_user_hp(user_id)  # 重置用户HP，mp，atk状态
         now_exp = min(int(int(exp) * 0.1), 50000000) 
         sql_message.update_exp(user_id, now_exp)  # 渡厄金丹增加用户修为
         msg = f"恭喜道友突破{le[0]}成功，因为使用了渡厄金丹，修为也增加了{now_exp}！！"
@@ -1104,7 +1179,12 @@ async def level_up_dr_(bot: Bot, event: GroupMessageEvent):
     user_id = user_info['user_id']
     if user_info['hp'] is None:
         # 判断用户气血是否为空
-        sql_message.update_user_hp(user_id)
+        if user_info['root_type'] == '轮回道果':
+            sql_message.update_user_hp2(user_id) 
+        elif user_info['root_type'] == '真·轮回道果':
+            sql_message.update_user_hp3(user_id)
+        else:
+            sql_message.update_user_hp(user_id)  # 重置用户HP，mp，atk状态
     user_msg = sql_message.get_user_info_with_id(user_id)  # 用户信息
     level_cd = user_msg['level_up_cd']
     if level_cd:
@@ -1143,12 +1223,10 @@ async def level_up_dr_(bot: Bot, event: GroupMessageEvent):
                 break
     
     if not pause_flag:
-        msg = f"道友突破需要使用{elixir_name}，但您的背包中没有该丹药！"
+        msg = f'道友突破需要使用{elixir_name}，但您的背包中没有该丹药！您可以选择 <qqbot-cmd-input text=\"直接突破\" show=\"直接突破\" reference=\"false\" />'
       #  sql_message.update_user_stamina(user_id, 8, 1)
         params_items = [('msg', msg)]               
-        buttons = [
-            [(2, '直接突破', '直接突破', True)],            
-        ]
+        buttons = []
        # 调用 markdown 函数生成数据
         data = await markdown(params_items, buttons)
         await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
@@ -1195,7 +1273,12 @@ async def level_up_dr_(bot: Bot, event: GroupMessageEvent):
         sql_message.update_power2(user_id)  # 更新战力
         sql_message.updata_level_cd(user_id)  # 更新CD
         sql_message.update_levelrate(user_id, 0)
-        sql_message.update_user_hp(user_id)  # 重置用户HP，mp，atk状态
+        if user_info['root_type'] == '轮回道果':
+            sql_message.update_user_hp2(user_id) 
+        elif user_info['root_type'] == '真·轮回道果':
+            sql_message.update_user_hp3(user_id)
+        else:
+            sql_message.update_user_hp(user_id)  # 重置用户HP，mp，atk状态
         msg = f"恭喜道友突破{le[0]}成功"
         params_items = [('msg', msg)]               
         buttons = [
@@ -1335,7 +1418,7 @@ async def give_stone_(bot: Bot, event: GroupMessageEvent, args: Message = Comman
                 await give_stone.finish()
             else:
                 sql_message.update_ls(user_id, give_stone_num, 2)  # 减少用户灵石
-                give_stone_num2 = int(give_stone_num) * 0.2
+                give_stone_num2 = int(give_stone_num) * 0.15
                 num = int(give_stone_num) - int(give_stone_num2)
                 sql_message.update_ls(give_message['user_id'], num, 1)  # 增加用户灵石
                 msg = f"道友***{user_info['user_name']}***共赠送{number_to(int(give_stone_num))}枚灵石给{give_message['user_name']}道友！收取手续费{int(give_stone_num2)}枚"
@@ -1606,6 +1689,13 @@ async def cz_(bot: Bot, event: GroupMessageEvent, args: Message = CommandArg()):
         await bot.send_group_msg(group_id=send_group_id, message=msg) 
         await cz.finish()
     
+@get_total_member.handle()
+async def get_total_member_(bot: Bot, event: GroupMessageEvent, args: Message = CommandArg()):
+    bot, send_group_id = await assign_bot(bot=bot, event=event)   
+    numbers = sql_message.get_max_id()
+    msg = f"当前修仙总人数为{numbers}！"
+    await bot.send_group_msg(group_id=int(send_group_id), message=msg)
+    await get_total_member.finish()
 
 
 
@@ -1617,7 +1707,7 @@ async def gmm_command_(bot: Bot, event: GroupMessageEvent, args: Message = Comma
     msg = args.extract_plain_text().strip()
     command_args = msg.split()    
     if not args:
-        msg = f"请输入正确指令！例如：轮回力量 道号 (1混沌,2融合,3超,4龙,5天,6千世,7万世,8异界)"
+        msg = f"请输入正确指令！例如：轮回力量 道号 (1混沌,2融合,3超,4龙,5天,6千世,7万世,8异界,9机械,10定制)"
         if XiuConfig().img:
             pic = await get_msg_pic(f"@{event.sender.nickname}\n" + msg)
             await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment.image(pic))
@@ -1662,6 +1752,16 @@ async def rob_stone_(bot: Bot, event: GroupMessageEvent, args: Message = Command
         await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
         await rob_stone.finish()
     user_id = user_info["user_id"]
+    if not args:
+        msg = f"对方未踏入修仙界，不可对凡人出手抢劫！"
+        params_items = [('msg', msg)]               
+        buttons = [
+            [(2, '打劫', '打劫 ', False)],            
+        ]
+       # 调用 markdown 函数生成数据
+        data = await markdown(params_items, buttons)
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
+        await rob_stone.finish()        
     is_type, msg = check_user_type(user_id, 0)    
     if not is_type:
         # 用户不在闲暇状态，发送对应提示信息
@@ -1680,6 +1780,16 @@ async def rob_stone_(bot: Bot, event: GroupMessageEvent, args: Message = Command
     player1 = {"user_id": None, "道号": None, "气血": None, "攻击": None, "真元": None, '会心': None, '爆伤': None, '防御': 0}
     player2 = {"user_id": None, "道号": None, "气血": None, "攻击": None, "真元": None, '会心': None, '爆伤': None, '防御': 0}
     user_2 = sql_message.get_user_info_with_name(give_qq)
+    if not user_2:
+        msg = f"对方未踏入修仙界，不可对凡人出手抢劫！"
+        params_items = [('msg', msg)]               
+        buttons = [
+            [(2, '打劫', '打劫 ', False)],            
+        ]
+       # 调用 markdown 函数生成数据
+        data = await markdown(params_items, buttons)
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
+        await rob_stone.finish()     
     is_type, msg = check_user_type(user_2['user_id'], 0)    
     if not is_type:
         # 用户不在闲暇状态，发送对应提示信息
@@ -1726,10 +1836,21 @@ async def rob_stone_(bot: Bot, event: GroupMessageEvent, args: Message = Command
             if user_2:
                 if user_info['hp'] is None:
                     # 判断用户气血是否为None
-                    sql_message.update_user_hp(user_id)
+                    if user_info['root_type'] == '轮回道果':
+                        sql_message.update_user_hp2(user_id) 
+                    elif user_info['root_type'] == '真·轮回道果':
+                        sql_message.update_user_hp3(user_id)
+                    else:
+                        sql_message.update_user_hp(user_id)  # 重置用户HP，mp，atk状态
                     user_info = sql_message.get_user_info_with_name(user_id)
                 if user_2['hp'] is None:
                     sql_message.update_user_hp(user_2['user_id'])
+                    if user_info['root_type'] == '轮回道果':
+                        sql_message.update_user_hp2(user_id) 
+                    elif user_info['root_type'] == '真·轮回道果':
+                        sql_message.update_user_hp3(user_id)
+                    else:
+                        sql_message.update_user_hp(user_id)  # 重置用户HP，mp，atk状态                    
                     user_2 = sql_message.get_user_info_with_name(give_qq)
 
                 if user_2['hp'] <= user_2['exp'] / 20:
@@ -1755,7 +1876,7 @@ async def rob_stone_(bot: Bot, event: GroupMessageEvent, args: Message = Command
                         await bot.send_group_msg(group_id=int(send_group_id), message=msg)
                     await rob_stone.finish()
                     
-                impart_data_1 = xiuxian_impart.get_user_info_with_id(user_id)
+                impart_data_1 = xiuxian_impart.get_user_impart_info_with_id(user_id)
                 player1['user_id'] = user_info['user_id']
                 player1['道号'] = user_info['user_name']
                 player1['气血'] = user_info['hp']
@@ -1773,7 +1894,7 @@ async def rob_stone_(bot: Bot, event: GroupMessageEvent, args: Message = Command
                     def_buff = 0
                 player1['防御'] = def_buff
 
-                impart_data_2 = xiuxian_impart.get_user_info_with_id(user_2['user_id'])
+                impart_data_2 = xiuxian_impart.get_user_impart_info_with_id(user_2['user_id'])
                 player2['user_id'] = user_2['user_id']
                 player2['道号'] = user_2['user_name']
                 player2['气血'] = user_2['hp']
@@ -1799,6 +1920,8 @@ async def rob_stone_(bot: Bot, event: GroupMessageEvent, args: Message = Command
                         sql_message.update_ls(user_id, int(foe_stone * 0.1), 1)
                         sql_message.update_ls(int(user_2['user_id']), int(foe_stone * 0.1), 2)
                         exps = int(user_2['exp'] * 0.005)
+                   #     if exps > 66666666:
+                   #         exps = 66666666                        
                         sql_message.update_exp(user_id, exps)
                         sql_message.update_j_exp(int(user_2['user_id']), exps / 2)
                         msg = f"大战一番，战胜对手，获取灵石{number_to(foe_stone * 0.1)}枚，修为增加{number_to(exps)}，对手修为减少{number_to(exps / 2)}"
@@ -1810,6 +1933,8 @@ async def rob_stone_(bot: Bot, event: GroupMessageEvent, args: Message = Command
                         await rob_stone.finish()
                     else:
                         exps = int(user_2['exp'] * 0.005)
+                   #     if exps > 66666666:
+                    #        exps = 66666666                        
                         sql_message.update_exp(user_id, exps)
                         sql_message.update_j_exp(int(user_2['user_id']), exps / 2)
                         msg = f"大战一番，战胜对手，结果对方是个穷光蛋，修为增加{number_to(exps)}，对手修为减少{number_to(exps / 2)}"
@@ -1826,6 +1951,8 @@ async def rob_stone_(bot: Bot, event: GroupMessageEvent, args: Message = Command
                         sql_message.update_ls(user_id, int(mind_stone * 0.1), 2)
                         sql_message.update_ls(int(user_2['user_id']), int(mind_stone * 0.1), 1)
                         exps = int(user_info['exp'] * 0.005)
+                  #      if exps > 66666666:
+                  #          exps = 66666666
                         sql_message.update_j_exp(user_id, exps)
                         sql_message.update_exp(int(user_2['user_id']), exps / 2)
                         msg = f"大战一番，被对手反杀，损失灵石{number_to(mind_stone * 0.1)}枚，修为减少{number_to(exps)}，对手获取灵石{number_to(mind_stone * 0.1)}枚，修为增加{number_to(exps / 2)}"
@@ -1837,6 +1964,8 @@ async def rob_stone_(bot: Bot, event: GroupMessageEvent, args: Message = Command
                         await rob_stone.finish()
                     else:
                         exps = int(user_info['exp'] * 0.005)
+                  #      if exps > 66666666:
+                  #          exps = 66666666                        
                         sql_message.update_j_exp(user_id, exps)
                         sql_message.update_exp(int(user_2['user_id']), exps / 2)
                         msg = f"大战一番，被对手反杀，修为减少{number_to(exps)}，对手修为增加{number_to(exps / 2)}"
@@ -2046,7 +2175,7 @@ async def hander_mew_hongbao(bot: Bot, event: GroupMessageEvent, args: Message =
     # 参数解析和检查
     kouling = args_list[0]
     if not args_list[1].isdigit() or not args_list[2].isdigit():
-        await bot.send_group_msg(group_id=int(send_group_id), message='红包金额和数量应为数字')
+        await bot.send_group_msg(group_id=int(send_group_id), message='红包灵石和数量应为数字')
         await mew_hongbao.finish()
 
     score = int(args_list[1])
@@ -2054,7 +2183,7 @@ async def hander_mew_hongbao(bot: Bot, event: GroupMessageEvent, args: Message =
     uid = user_info['user_id']
 
     if score < 1:
-        await bot.send_group_msg(group_id=int(send_group_id), message='红包金额需要大于0')
+        await bot.send_group_msg(group_id=int(send_group_id), message='红包灵石需要大于0')
         await mew_hongbao.finish()
 
     if num < 1:
@@ -2067,14 +2196,14 @@ async def hander_mew_hongbao(bot: Bot, event: GroupMessageEvent, args: Message =
 
     my_score = user_info['stone']
     if score > my_score:
-        await bot.send_group_msg(group_id=int(send_group_id), message=f'您的金币小于{score}，红包发放失败')
+        await bot.send_group_msg(group_id=int(send_group_id), message=f'您的灵石小于{score}，红包发放失败')
         await mew_hongbao.finish()
 
     fee = int(score * 0.2)
     net_score = score - fee
 
     if net_score <= 0:
-        await bot.send_group_msg(group_id=int(send_group_id), message='扣除手续费后红包金额小于等于0，红包发放失败')
+        await bot.send_group_msg(group_id=int(send_group_id), message='扣除手续费后红包灵石小于等于0，红包发放失败')
         await mew_hongbao.finish()
 
     hbscore, use_score, hbnum, use_num, openuser = pmhongbao.get_hongbao(kouling)
@@ -2136,7 +2265,7 @@ async def hander_open_hongbao(bot: Bot, event: GroupMessageEvent, args: Message 
     pmhongbao.open_hongbao(kouling,get_score,uid)
     if last_num == 1:
         pmhongbao.hongbao_off(kouling)
-    msg = f'恭喜【{name}】道友！您抢到了{get_score}金币，红包剩余数量{last_num - 1}，剩余金额{last_score - get_score}'
+    msg = f'恭喜【{name}】道友！您抢到了{get_score}灵石，红包剩余数量{last_num - 1}，剩余灵石{last_score - get_score}'
   #  buttons = [
   #      Button('抢红包', f'pm抢红包{kouling}', '抢红包', action=1),
  #   ]
@@ -2166,14 +2295,14 @@ async def get_gift_(bot: Bot, event: GroupMessageEvent):
         msg = f"领取礼包境界最低要求为{XiuConfig().gift_min_level}，道友请多多修炼才是！"
         params_items = [('msg', msg)]
         buttons = [
-            [(2, '修炼', '修炼', True)],                        
+            [(2, '领取修仙礼包', '领取修仙礼包', True)],                        
         ]
         data = await markdown(params_items, buttons)
         await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
-        await create_sect.finish()         
+        await get_gift.finish()         
                
     propname = "渡厄丹"
-    propnum = 50  
+    propnum = 10  
     scorenum = 2000000
     gift_info = sql_message.get_gift_info(user_info['user_id'])
  #   msg = "礼包领取已结束，祝您中秋国庆快乐！"
@@ -2187,13 +2316,13 @@ async def get_gift_(bot: Bot, event: GroupMessageEvent):
  #   await get_gift.finish()  
     
     if gift_info == 0:
-        sql_message.update_ls(user_info['user_id'], scorenum, 1)  # 发放300万灵石
-       # sql_message.send_back(user_info['user_id'], 1999, "渡厄丹", "丹药", 10, 1)  # 发放物品
+       # sql_message.update_ls(user_info['user_id'], scorenum, 1)  # 发放300万灵石
+        sql_message.send_back(user_info['user_id'], 1999, propname, "丹药", propnum, 1)  # 发放物品
         sql_message.update_gift(user_info['user_id'], 1)  # 更新领取状态
-        msg = f'亲爱的群友们，在这国庆佳节之际，庆祝祖国的繁荣富强。在这充满欢庆的日子里，灵梦为各位训练家准备了小小礼物，发放灵石{scorenum}枚！祝各位国庆快乐！φ（￣∇￣o）'
+        msg = f'今日补偿，渡厄丹 x10。φ（￣∇￣o）'
         params_items = [('msg', msg)]               
         buttons = [
-            [(2, '使用物品', f'使用{propname}', False), (2, '查看物品', '查看物品效果 1999', True)],            
+            [(2, '领取修仙礼包', '领取修仙礼包', True)],            
         ]
        # 调用 markdown 函数生成数据
         data = await markdown(params_items, buttons)
@@ -2203,7 +2332,7 @@ async def get_gift_(bot: Bot, event: GroupMessageEvent):
         msg = "真是贪心！您已经领取过该礼品，无法再次领取。"
         params_items = [('msg', msg)]               
         buttons = [
-            [(2, '修炼', '修炼', True)],            
+            [(2, '领取修仙礼包', '领取修仙礼包', True)],            
         ]
        # 调用 markdown 函数生成数据
         data = await markdown(params_items, buttons)
@@ -2246,7 +2375,7 @@ async def vip_get_(bot: Bot, event: GroupMessageEvent, args: Message = CommandAr
         await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data}))
         await vip_get.finish()    
     user_id = user_info['user_id']   
-    valid_kouling = "abcxf"  # 替换为您设定的有效兑换码
+    valid_kouling = "abcxff"  # 替换为您设定的有效兑换码
     if kouling != valid_kouling:
         msg = f'无效的兑换码，还请道友再仔细检查！'
         params_items = [('msg', msg)]               
@@ -2260,8 +2389,7 @@ async def vip_get_(bot: Bot, event: GroupMessageEvent, args: Message = CommandAr
     try:
         sql_message.update_vip(user_id, 1)  # 每次增加 30 天
         days = sql_message.check_vip_status(user_id) # 获取剩余有效期
-        leftdays = days + 1
-        msg = f'兑换成功，您已成为尊贵的VIP会员。有效期还有{leftdays}天'
+        msg = f'兑换成功，您的修仙令牌已激活。有效期还有{days}天'
         await bot.send_group_msg(group_id=int(send_group_id), message=msg)
     except Exception as e:
         await bot.send_group_msg(group_id=int(send_group_id), message=f'发放过程中出现错误：{str(e)}，请联系管理员！') 

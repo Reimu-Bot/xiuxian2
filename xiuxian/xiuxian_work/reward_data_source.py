@@ -70,3 +70,19 @@ def savef(user_id, data):
         f.write(data)
         f.close()
     return True
+
+def deletef(user_id):
+    user_id = str(user_id)
+    FILEPATH = os.path.join(PLAYERSDATA, user_id, "workinfo.json")
+
+    try:
+        if os.path.exists(FILEPATH):
+            os.remove(FILEPATH)  # 删除文件
+            logger.info(f"成功删除用户 {user_id} 的 workinfo.json 文件。")
+            return True
+        else:
+            logger.warning(f"文件 {FILEPATH} 不存在，无法删除。")
+            return False
+    except Exception as e:
+        logger.error(f"删除文件时发生错误: {str(e)}")
+        return False

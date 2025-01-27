@@ -7,27 +7,29 @@ from pathlib import Path
 from typing import List
 
 READPATH = Path() / "data" / "xiuxian"
-SKILLPATHH = READPATH / "功法"
+SKILLPATH = READPATH / "功法"
 WEAPONPATH = READPATH / "装备"
 ELIXIRPATH = READPATH / "丹药"
+PACKAGESPATH = READPATH / "礼包"
 XIULIANITEMPATH = READPATH / "修炼物品"
-BOSSDROPS = READPATH / "boss掉落物"
+BOSSDROPSPATH = READPATH / "boss掉落物"
 
 
 class Items:
     def __init__(self) -> None:
-        self.mainbuff_jsonpath = SKILLPATHH / "主功法.json"
-        self.subbuff_jsonpath = SKILLPATHH / "辅修功法.json" 
-        self.secbuff_jsonpath = SKILLPATHH / "神通.json"
+        self.mainbuff_jsonpath = SKILLPATH / "主功法.json"
+        self.subbuff_jsonpath = SKILLPATH / "辅修功法.json" 
+        self.secbuff_jsonpath = SKILLPATH / "神通.json"
         self.weapon_jsonpath = WEAPONPATH / "法器.json"
         self.armor_jsonpath = WEAPONPATH / "防具.json"
         self.elixir_jsonpath = ELIXIRPATH / "丹药.json"
-        self.lb_jsonpath = ELIXIRPATH / "礼包.json"
+        self.lb_jsonpath = PACKAGESPATH / "礼包.json"
         self.yaocai_jsonpath = ELIXIRPATH / "药材.json"
         self.mix_elixir_type_jsonpath = ELIXIRPATH / "炼丹丹药.json"
         self.ldl_jsonpath = ELIXIRPATH / "炼丹炉.json"
         self.jlq_jsonpath = XIULIANITEMPATH / "聚灵旗.json"
-        self.dlw_jsonpath = BOSSDROPS / "boss掉落物.json"
+        self.spwp_jsonpath = XIULIANITEMPATH / "spwuping.json"
+        self.dlw_jsonpath = BOSSDROPSPATH / "boss掉落物.json"
         self.sw_jsonpath = ELIXIRPATH / "神物.json"
         self.items = {}
         self.set_item_data(self.get_armor_data(), "防具")
@@ -41,7 +43,9 @@ class Items:
         self.set_item_data(self.get_mix_elixir_type_data(), "合成丹药")
         self.set_item_data(self.get_ldl_data(), "炼丹炉")
         self.set_item_data(self.get_jlq_data(), "聚灵旗")
+        self.set_item_data(self.get_jlq_data(), "聚灵旗")
         self.set_item_data(self.get_dlw_data(), "掉落物")
+        self.set_item_data(self.get_spwp_data(), "特殊物品")
         self.set_item_data(self.get_sw_data(), "神物")
         self.savef(self.items)
 
@@ -90,7 +94,8 @@ class Items:
 
     def get_jlq_data(self):
         return self.readf(self.jlq_jsonpath)
-    
+    def get_spwp_data(self):
+        return self.readf(self.spwp_jsonpath)    
     def get_dlw_data(self):
         return self.readf(self.dlw_jsonpath)
     
@@ -98,9 +103,26 @@ class Items:
         return self.readf(self.sw_jsonpath)
 
     def get_data_by_item_id(self, item_id):
+        """通过物品ID获取物品数据"""
         if item_id is None:
             return None
         return self.items[str(item_id)]
+    
+    def get_data_by_item_name(self, item_name):
+        """通过物品名称获取物品ID和物品数据"""
+        for item_id, item in self.items.items():
+            if item['name'] == item_name:
+                return item_id, item
+        return None, None
+    
+
+    def get_fusion_items(self):
+        """获取所有可合成的物品名称和类型"""
+        fusion_items = []
+        for item_id, item_data in self.items.items():
+            if 'fusion' in item_data:
+                fusion_items.append(f"{item_data['name']} ({item_data['type']})")
+        return fusion_items
 
 
     def set_item_data(self, dict_data, item_type):
@@ -121,6 +143,14 @@ class Items:
                 temp_dict[k] = v
         return temp_dict
 
+    def get_data_by_type(self, type):
+        """获取所有 type 为 '功法' 的物品，剔除掉 level 是 '世界之源' 的物品"""
+        temp_dict = {}
+        for k, v in self.items.items():
+            # 判断 type 是否为 "功法" 且 level 不是 "世界之源"
+            if v['type'] == type and v['level'] != "世界之源":
+                temp_dict[k] = v
+        return temp_dict
 
     def get_random_id_list_by_rank_and_item_type(
             self,

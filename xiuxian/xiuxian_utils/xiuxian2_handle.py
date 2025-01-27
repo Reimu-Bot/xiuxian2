@@ -70,7 +70,11 @@ class XiuxianDateManage:
                     if 'sign_count' not in columns:
                         c.execute("ALTER TABLE user_xiuxian ADD COLUMN sign_count INTEGER DEFAULT 0")
                     if 'is_shuangxiu' not in columns:
-                        c.execute("ALTER TABLE user_xiuxian ADD COLUMN is_shuangxiu INTEGER DEFAULT 0")                         
+                        c.execute("ALTER TABLE user_xiuxian ADD COLUMN is_shuangxiu INTEGER DEFAULT 0")   
+                    if 'is_mijing' not in columns:
+                        c.execute("ALTER TABLE user_xiuxian ADD COLUMN is_mijing INTEGER DEFAULT 0")                         
+                    if 'invite_num' not in columns:
+                        c.execute("ALTER TABLE user_xiuxian ADD COLUMN invite_num INTEGER DEFAULT 0")                                                 
                 except sqlite3.OperationalError:
                     c.execute("""CREATE TABLE "user_xiuxian" (
       "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
@@ -91,7 +95,9 @@ class XiuxianDateManage:
       "level_up_cd" integer DEFAULT NULL,
       "level_up_rate" integer DEFAULT 0,
       "sign_count" integer DEFAULT 0,
-      "is_shuangxiu" integer DEFAULT 0       
+      "is_shuangxiu" integer DEFAULT 0,
+      "is_mijing" integer DEFAULT 0,
+      "invite_num" integer DEFAULT 0        
     );""")
             elif i == "user_cd":
                 try:
@@ -176,6 +182,18 @@ class XiuxianDateManage:
             logger.opt(colors=True).info("<green>bank 表已创建！</green>")
 
         try:
+            c.execute(f"SELECT count(1) FROM dungeon")
+        except sqlite3.OperationalError:
+            c.execute("""
+                CREATE TABLE "dungeon" (
+                    "user_id" TEXT NOT NULL PRIMARY KEY,
+                    "floor" INTEGER NOT NULL,
+                    "num" INTEGER DEFAULT 0                  
+                );
+            """)
+            logger.opt(colors=True).info("<green>dungeon 表已创建！</green>")
+
+        try:
             c.execute(f"SELECT count(1) FROM boss")
         except sqlite3.OperationalError:
             c.execute("""
@@ -217,7 +235,7 @@ class XiuxianDateManage:
                     "price" INTEGER, 
                     "user_name" TEXT,
                     "stock" INTEGER,
-                    "uptime" TEXT DEFAULT 0
+                    "uptime" INTEGER NOT NULL
                 );
             """)
             logger.opt(colors=True).info("<green>auction 表已创建！</green>")  
@@ -230,6 +248,33 @@ class XiuxianDateManage:
                     "user_id" TEXT NOT NULL,
                     "NUM" INT NOT NULL,
                      PRIMARY KEY(user_id));
+            """)
+            logger.opt(colors=True).info("<green>auction 表已创建！</green>") 
+
+        try:
+            c.execute(f"SELECT count(1) FROM user_tasks")
+        except sqlite3.OperationalError:
+            c.execute("""
+                CREATE TABLE IF NOT EXISTS user_tasks(
+                    "user_id" TEXT NOT NULL,
+                    "task_name" TEXT,
+                    "task_content" TEXT,
+                    "task_type" TEXT,                    
+                     PRIMARY KEY(user_id));
+            """)
+            logger.opt(colors=True).info("<green>auction 表已创建！</green>") 
+
+        try:
+            c.execute(f"SELECT count(1) FROM rift")
+        except sqlite3.OperationalError:
+            c.execute("""
+                CREATE TABLE IF NOT EXISTS rift(
+                    "rift_name" TEXT NOT NULL,
+                    "rift_rank" integer DEFAULT NULL,
+                    "rift_count" integer DEFAULT NULL,
+                    "rift_time" integer DEFAULT NULL, 
+                    "user_id" TEXT NOT NULL,
+                     PRIMARY KEY(user_id));                    
             """)
             logger.opt(colors=True).info("<green>auction 表已创建！</green>") 
 
@@ -335,6 +380,32 @@ WHERE last_check_info_time = '0' OR last_check_info_time IS NULL
         else:
             return None
 
+    def get_max_id(self):
+        """获取 user_xiuxian 表中最大的 id"""
+        cur = self.conn.cursor()
+        # SQL查询语句，获取最大 id
+        sql = "SELECT MAX(id) FROM user_xiuxian"
+        cur.execute(sql)
+        result = cur.fetchone()  # 获取查询结果的第一行
+
+        if result and result[0] is not None:
+            return result[0]  # 返回最大的 id
+        else:
+            return None  # 如果表中没有记录，返回 None
+
+    def update_invite_num(self, user_id, invite_num, key):
+        """更新邀请  1为增加，2为减少"""
+        cur = self.conn.cursor()
+
+        if key == 1:
+            sql = f"UPDATE user_xiuxian SET invite_num=invite_num+? WHERE user_id=?"
+            cur.execute(sql, (invite_num, user_id))
+            self.conn.commit()
+        elif key == 2:
+            sql = f"UPDATE user_xiuxian SET invite_num=invite_num-? WHERE user_id=?"
+            cur.execute(sql, (invite_num, user_id))
+            self.conn.commit()
+
     def get_user_boss_score(self, user_id):
         """根据USER_ID获取用户信息，包括boss_integral"""
         cur = self.conn.cursor()
@@ -342,6 +413,92 @@ WHERE last_check_info_time = '0' OR last_check_info_time IS NULL
         cur.execute(sql, (user_id,))
         result = cur.fetchone()
         
+        if result:
+            columns = [column[0] for column in cur.description]
+            user_dict = dict(zip(columns, result))
+            return user_dict
+        else:
+            return None
+
+    def create_rift_info(self, rift_name, rift_rank, rift_count, rift_time, user_id):
+        """插入秘境信息"""    
+        sql = 'INSERT OR REPLACE INTO rift (rift_name, rift_rank, rift_count, rift_time, user_id) VALUES (?, ?, ?, ?, ?)'
+        cur = self.conn.cursor()
+        cur.execute(sql, (rift_name, rift_rank, rift_count, rift_time, user_id))  # 传递参数
+        self.conn.commit()
+
+    def get_rift_info(self, rift_name):
+        """获取秘境信息"""    
+        cur = self.conn.cursor()
+        sql = f"select user_id from rift WHERE rift_name=?"
+        cur.execute(sql, (rift_name,))
+        result = cur.fetchone()
+        if result:
+            columns = [column[0] for column in cur.description]
+            user_dict = dict(zip(columns, result))
+            return user_dict
+        else:
+            return None
+
+    def get_rift_count(self):
+        """获取 rift 表的记录数"""
+        c = self.conn.cursor()
+        c.execute("SELECT COUNT(*) FROM rift")
+        count = c.fetchone()[0]  # 获取计数的结果
+        return count
+
+    def list_all_user_ids(self):
+        """列出 rift 表中的所有 user_id"""
+        c = self.conn.cursor()
+        c.execute("SELECT user_id FROM rift")
+        user_ids = c.fetchall()  # 获取所有结果
+        return [user_id[0] for user_id in user_ids]
+
+    def delete_rifts(self, uid):
+        """删除 rift 表中的所有数据"""
+        c = self.conn.cursor()
+        try:
+            c.execute("DELETE FROM rift WHERE user_id = ?", (uid,))
+            self.conn.commit()  # 提交更改
+            logger.info("数据已成功删除。")
+            return True  # 返回成功状态
+        except sqlite3.Error as e:
+            logger.error(f"删除数据时出错: {e}")
+            return False  # 返回失败状态
+
+    def has_rift_info(self, user_id):
+        """检查是否存在秘境信息"""
+        cur = self.conn.cursor()
+        sql = f"select * from rift WHERE user_id = ?"
+        cur.execute(sql, (user_id,))
+        result = cur.fetchone()
+        if result:
+            columns = [column[0] for column in cur.description]
+            user_dict = dict(zip(columns, result))
+            return user_dict
+        else:
+            return None
+
+    def create_user_sect_task(self, user_id, task_name, task_content, task_type):
+        """插入或更新宗门任务"""    
+        sql = 'INSERT OR REPLACE INTO user_tasks (user_id, task_name, task_content, task_type) VALUES (?, ?, ?, ?)'
+        cur = self.conn.cursor()
+        cur.execute(sql, (user_id, task_name, task_content, task_type))  # 传递参数
+        self.conn.commit()
+
+    def delete_user_sect_task(self, user_id, task_type):
+        """根据 user_id 和 task_type 删除宗门任务"""    
+        sql = 'DELETE FROM user_tasks WHERE user_id = ? AND task_type = ?'
+        cur = self.conn.cursor()
+        cur.execute(sql, (user_id, task_type))  # 传递参数
+        self.conn.commit()
+
+    def get_task_info(self, user_id, task_type):
+        """获取任务信息"""    
+        cur = self.conn.cursor()
+        sql = f"select * from user_tasks WHERE user_id=? AND task_type=?"
+        cur.execute(sql, (user_id, task_type))
+        result = cur.fetchone()
         if result:
             columns = [column[0] for column in cur.description]
             user_dict = dict(zip(columns, result))
@@ -377,14 +534,27 @@ WHERE last_check_info_time = '0' OR last_check_info_time IS NULL
             if key == 1:
                 # 当前时间加上 30 天
                 start_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S.%f')
-                finish_time = (datetime.now() + timedelta(days=30)).strftime('%Y-%m-%d %H:%M:%S.%f')
+                finish_time = (datetime.now() + timedelta(days=31)).strftime('%Y-%m-%d %H:%M:%S.%f')
                 cur.execute("INSERT INTO VIP (user_id, start_time, finish_time) VALUES (?, ?, ?)", (user_id, start_time, finish_time))
             elif key == 2:
                 pass
         else:  # 用户已存在
             if key == 1:
-                # 当前finish_time 加 30天
-                finish_time = (datetime.strptime(result[0], "%Y-%m-%d %H:%M:%S.%f") + timedelta(days=30)).strftime('%Y-%m-%d %H:%M:%S.%f')
+                # 获取当前时间
+                current_time = datetime.now()
+
+                # 解析数据库中的 finish_time
+                db_finish_time = datetime.strptime(result[0], "%Y-%m-%d %H:%M:%S.%f")
+
+                # 判断 finish_time 是否大于当前时间
+                if db_finish_time > current_time:
+                    # 如果 finish_time 已经大于当前时间，增加 30 天
+                    finish_time = (db_finish_time + timedelta(days=31)).strftime('%Y-%m-%d %H:%M:%S.%f')
+                else:
+                    # 如果 finish_time 小于当前时间，设置为当前时间 + 30 天
+                    finish_time = (current_time + timedelta(days=31)).strftime('%Y-%m-%d %H:%M:%S.%f')
+
+                # 更新数据库中的 finish_time
                 sql = "UPDATE VIP SET finish_time=? WHERE user_id=?"
                 cur.execute(sql, (finish_time, user_id))
             elif key == 2:
@@ -487,11 +657,10 @@ WHERE last_check_info_time = '0' OR last_check_info_time IS NULL
         try:
             cur = self.conn.cursor()
             
-            # 使用参数化查询来避免SQL注入
             sql = """
             SELECT exchangeid, user_id, goods_name, goods_id, goods_type, stock 
             FROM Fangshi 
-            WHERE UPTIME < ?
+            WHERE uptime < ?
             """
             
             # 执行查询，并将参数传递
@@ -802,10 +971,10 @@ WHERE last_check_info_time = '0' OR last_check_info_time IS NULL
         if not result:
             self._create_user(user_id, args[0], args[1], args[2], args[3], args[4]) # root, type, power, create_time, user_name
             self.conn.commit()
-            welcome_msg = f"欢迎进入修仙世界 \n如想修改灵根请输入<qqbot-cmd-input text=\"重入仙途\" show=\"重入仙途\" reference=\"false\" />重入仙途。\n强烈建议道友使用<qqbot-cmd-input text=\"修改道号 \" show=\"修改道号\" reference=\"false\" />改个心仪的道号，道号为战斗唯一标识符。\n你的灵根：{args[0]} \n类型：{args[1]} \n你的战力：{args[2]} \n当前境界：江湖好手"
+            welcome_msg = f"欢迎进入修仙世界 \n如想修改灵根请输入<qqbot-cmd-input text=\"重入仙途\" show=\"重入仙途\" />重入仙途。\n强烈建议道友使用<qqbot-cmd-input text=\"修改道号 \" show=\"修改道号\" />改个心仪的道号，道号为战斗唯一标识符。\n你的灵根：{args[0]} \n类型：{args[1]} \n你的战力：{args[2]} \n当前境界：江湖好手"
             return True, welcome_msg
         else:
-            return False, f"道友您已迈入修仙世界，输入<qqbot-cmd-input text=\"修仙帮助\" show=\"修仙帮助\" reference=\"false\" /> \n开始您的修仙之旅吧！如想修改灵根请输入<qqbot-cmd-input text=\"重入仙途\" show=\"重入仙途\" reference=\"false\" />重入仙途。\n强烈建议道友使用<qqbot-cmd-input text=\"修改道号 \" show=\"修改道号\" reference=\"false\" />改个心仪的道号，道号为战斗唯一标识符。" 
+            return False, f"道友您已迈入修仙世界，输入<qqbot-cmd-input text=\"修仙帮助\" show=\"修仙帮助\" /> \n开始您的修仙之旅吧！如想修改灵根请输入<qqbot-cmd-input text=\"重入仙途\" show=\"重入仙途\" />重入仙途。\n强烈建议道友使用<qqbot-cmd-input text=\"修改道号 \" show=\"修改道号\" />改个心仪的道号，道号为战斗唯一标识符。" 
 
     def get_sign(self, user_id):
         """获取用户签到信息"""
@@ -816,28 +985,33 @@ WHERE last_check_info_time = '0' OR last_check_info_time IS NULL
         result = cur.fetchone()
 
         if not result:
-            return f"修仙界没有你的足迹，输入 '我要修仙' 加入修仙世界吧！"
+            return "修仙界没有你的足迹，输入 '我要修仙' 加入修仙世界吧！"
         
         # 如果今天还没有签到
         elif result[0] == 0:
-            # 随机生成灵石奖励
-            ls = random.randint(XiuConfig().sign_in_lingshi_lower_limit, XiuConfig().sign_in_lingshi_upper_limit)
+            user_vip_days = sql_message.check_vip_status(user_id)  # 确认 VIP 状态
+            if user_vip_days > 0:  # 检查用户是否为 VIP
+                ls = random.randint(XiuConfig().sign_in_lingshi_lower_limit, XiuConfig().sign_in_lingshi_upper_limit) * 2
+                vip_message = "由于您是月卡用户，可享受双倍灵石奖励！"
+            else:        
+                ls = random.randint(XiuConfig().sign_in_lingshi_lower_limit, XiuConfig().sign_in_lingshi_upper_limit)
+                vip_message = ""  
+
             new_sign_count = result[1] + 1  # 增加签到次数
-            spls = 66666666
+            spls = 66666666  # 特别奖励的灵石数目
+
             # 如果累计签到超过100次，给予特别奖励
             if new_sign_count == 100:
-                special_reward = "获得神秘宝箱!"
                 sql2 = "UPDATE user_xiuxian SET is_sign=1, stone=stone+?, sign_count=sign_count+1 WHERE user_id=?"
                 cur.execute(sql2, (spls, user_id))
-               # cur.execute(sql2, (spls, user_id))
                 self.conn.commit()
                 return f"仙途漫漫，今日您又迈出了一步。恭喜你，累积签到已达{new_sign_count}次。天赐祥瑞，获赠{spls}块灵石，以助您修行之路更加顺畅!"
             else:
                 sql2 = "UPDATE user_xiuxian SET is_sign=1, stone=stone+?, sign_count=sign_count+1 WHERE user_id=?"
                 cur.execute(sql2, (ls, user_id))
                 self.conn.commit()
-                return f"签到成功，获取{ls}块灵石！已签到{new_sign_count}次。"
-        
+                return f"签到成功！{vip_message}，获取{ls}块灵石！已签到{new_sign_count}次。"
+       
         # 如果已经签到过
         elif result[0] == 1:
             return "贪心的人是不会有好运的！"
@@ -923,6 +1097,70 @@ WHERE last_check_info_time = '0' OR last_check_info_time IS NULL
         
         self.conn.commit()
 
+    def update_mijing(self, user_id=None, is_mijing=None, key=None, reset_all=False):
+        """更新双修次数，1为增加，2为减少，reset_all为True时重置为0"""
+        cur = self.conn.cursor()
+
+        if reset_all:
+            # 将所有用户的 is_mijing 设置为 0
+            sql = "UPDATE user_xiuxian SET is_mijing = 0"
+            cur.execute(sql)
+        else:
+            if key == 1:
+                sql = "UPDATE user_xiuxian SET is_mijing = is_mijing + ? WHERE user_id = ?"
+                cur.execute(sql, (is_mijing, user_id))
+            elif key == 2:
+                sql = "UPDATE user_xiuxian SET is_mijing = is_mijing - ? WHERE user_id = ?"
+                cur.execute(sql, (is_mijing, user_id))
+        
+        self.conn.commit()
+
+    def update_root1(self, user_id, key):
+        """更新灵根  1为混沌,2为融合,3为超,4为龙,5为天,6为千世,7为万世"""
+        cur = self.conn.cursor()
+        if int(key) == 1:
+            sql = f"UPDATE user_xiuxian SET root=?,root_type=? WHERE user_id=?"
+            cur.execute(sql, ("全属性灵根", "混沌灵根", user_id))
+            root_name = "混沌灵根"
+            self.conn.commit()
+            
+        elif int(key) == 2:
+            sql = f"UPDATE user_xiuxian SET root=?,root_type=? WHERE user_id=?"
+            cur.execute(sql, ("融合万物灵根", "融合灵根", user_id))
+            root_name = "融合灵根"
+            self.conn.commit()
+            
+        elif int(key) == 3:
+            sql = f"UPDATE user_xiuxian SET root=?,root_type=? WHERE user_id=?"
+            cur.execute(sql, ("月灵根", "超灵根", user_id))
+            root_name = "超灵根"
+            self.conn.commit()
+            
+        elif int(key) == 4:
+            sql = f"UPDATE user_xiuxian SET root=?,root_type=? WHERE user_id=?"
+            cur.execute(sql, ("言灵灵根", "龙灵根", user_id))
+            root_name = "龙灵根"
+            self.conn.commit()
+            
+        elif int(key) == 5:
+            sql = f"UPDATE user_xiuxian SET root=?,root_type=? WHERE user_id=?"
+            cur.execute(sql, ("金灵根", "天灵根", user_id))
+            root_name = "天灵根"
+            self.conn.commit()
+            
+        elif int(key) == 6:
+            sql = f"UPDATE user_xiuxian SET root=?,root_type=? WHERE user_id=?"
+            cur.execute(sql, ("轮回千次不灭，只为臻至巅峰", "轮回道果", user_id))
+            root_name = "轮回道果"
+            self.conn.commit()
+            
+        elif int(key) == 7:
+            sql = f"UPDATE user_xiuxian SET root=?,root_type=? WHERE user_id=?"
+            cur.execute(sql, ("轮回万次不灭，只为超越巅峰", "真·轮回道果", user_id))
+            root_name = "真·轮回道果"
+            self.conn.commit()
+
+        return root_name  # 返回灵根名称
 
     def update_root(self, user_id, key, rootname):
         """更新灵根  1为混沌,2为融合,3为超,4为龙,5为天,6为千世,7为万世,8为异世,9为机械"""
@@ -980,6 +1218,12 @@ WHERE last_check_info_time = '0' OR last_check_info_time IS NULL
             cur.execute(sql, (rootname, "机械核心", user_id))
             root_name = "机械核心"
             self.conn.commit()            
+
+        elif int(key) == 10:
+            sql = f"UPDATE user_xiuxian SET root=?,root_type=? WHERE user_id=?"
+            cur.execute(sql, (rootname, "生命的尽头", user_id))
+            root_name = "生命的尽头"
+            self.conn.commit() 
 
         return root_name  # 返回灵根名称
 
@@ -1041,6 +1285,52 @@ WHERE last_check_info_time = '0' OR last_check_info_time IS NULL
         cur.execute(sql, )
         self.conn.commit()
 
+    def new_dungeon(self, user_id):
+        """插入或更新妖塔"""
+        sql = 'INSERT OR REPLACE INTO dungeon (user_id, floor, num) VALUES (?, ?, ?)'
+        cur = self.conn.cursor()
+        cur.execute(sql, (user_id, 0, 0))  # 传递参数
+        self.conn.commit()
+
+    def update_dungeon(self, user_id, dungeon_num, cishu):
+        """更新妖界塔"""
+        cur = self.conn.cursor()
+        sql = f"UPDATE dungeon SET floor=?, num=? WHERE user_id=?"
+        cur.execute(sql, (dungeon_num, cishu, user_id))
+        self.conn.commit()
+
+    def get_dungeon_info(self, user_id):
+        try:
+            cur = self.conn.cursor()
+            
+            # 使用参数化查询来避免SQL注入
+            sql = """
+            SELECT floor, num 
+            FROM dungeon 
+            WHERE user_id = ?
+            """
+            cur.execute(sql, (user_id,))
+            r = cur.fetchall()
+            
+            if r:
+                return r[0]  
+            else:
+                self.new_dungeon(user_id)            
+                return 0  # 返回0表示没有找到
+        except Exception as e:
+            print(f'查找表发生错误: {e}') 
+            raise
+        finally:
+            cur.close()  
+
+    def get_dungeon_list(self):
+        """妖界塔排行榜"""
+        sql = f"SELECT user_id,floor FROM dungeon WHERE floor>0 ORDER BY floor DESC LIMIT 50"
+        cur = self.conn.cursor()
+        cur.execute(sql, )
+        result = cur.fetchall()
+        return result
+
     def ban_user(self, user_id):
         """小黑屋"""
         sql = f"UPDATE user_xiuxian SET is_ban=1 WHERE user_id=?"
@@ -1055,7 +1345,7 @@ WHERE last_check_info_time = '0' OR last_check_info_time IS NULL
         cur.execute(get_name, (user_name,))
         result = cur.fetchone()
         if result:
-            return f"道号既定，修行已久，然天地法则，变动不居。提醒道友，已有其他道友取得该道号，请<qqbot-cmd-input text=\"修改道号\" show=\"重新获取\" reference=\"false\" /> ！"
+            return f"道号既定，修行已久，然天地法则，变动不居。提醒道友，已有其他道友取得该道号，请<qqbot-cmd-input text=\"修改道号\" show=\"重新获取\" /> ！"
         else:
             sql = f"UPDATE user_xiuxian SET user_name=? WHERE user_id=?"
 
@@ -1864,6 +2154,20 @@ WHERE last_check_info_time = '0' OR last_check_info_time IS NULL
         cur.execute(sql, (user_id,))
         self.conn.commit()
 
+    def update_user_hp2(self, user_id):
+        """重置用户hp,mp信息"""
+        sql = f"UPDATE user_xiuxian SET hp=ROUND(exp*0.65, 0), mp=ROUND(exp*1.2, 0), atk=ROUND(exp*0.12, 0) WHERE user_id=?"
+        cur = self.conn.cursor()
+        cur.execute(sql, (user_id,))
+        self.conn.commit()
+
+    def update_user_hp3(self, user_id):
+        """重置用户hp,mp信息"""
+        sql = f"UPDATE user_xiuxian SET hp=ROUND(exp*0.85, 0), mp=ROUND(exp*1.5, 0), atk=ROUND(exp*0.15, 0) WHERE user_id=?"
+        cur = self.conn.cursor()
+        cur.execute(sql, (user_id,))
+        self.conn.commit()
+
     def restate(self, user_id=None):
         """重置所有用户状态或重置对应人状态"""
         if user_id is None:
@@ -2105,11 +2409,25 @@ WHERE last_check_info_time = '0' OR last_check_info_time IS NULL
         cur.execute(sql, )
         self.conn.commit()
 
-    def reset_work_num(self):
+    def reset_work_num(self, user_id=None):
         """重置用户悬赏令刷新次数"""
-        sql = f"UPDATE user_xiuxian SET work_num=0"
+        if user_id:
+            # 如果传入了 user_id，则只更新该用户的 work_num
+            sql = "UPDATE user_xiuxian SET work_num=0 WHERE user_id = ?"
+            cur = self.conn.cursor()
+            cur.execute(sql, (user_id,))
+        else:
+            # 如果没有传入 user_id，则更新所有用户的 work_num
+            sql = "UPDATE user_xiuxian SET work_num=0"
+            cur = self.conn.cursor()
+            cur.execute(sql)
+        self.conn.commit()
+
+    def reset_mijing(self, user_id):
+        """重置用户悬赏令刷新次数"""
+        sql = "UPDATE user_xiuxian SET is_mijing=0 WHERE user_id = ?"
         cur = self.conn.cursor()
-        cur.execute(sql, )
+        cur.execute(sql, (user_id,))
         self.conn.commit()
 
     def get_work_num(self, user_id):
@@ -2186,6 +2504,13 @@ WHERE last_check_info_time = '0' OR last_check_info_time IS NULL
         logger.opt(colors=True).info(f"<green>执行的sql:{sql_str}</green>")
         cur = self.conn.cursor()
         cur.execute(sql_str)
+        self.conn.commit()
+
+    def reset_user_drug_resistance(self, user_id):
+        """重置用户耐药性"""
+        sql = f"UPDATE back SET all_num=0 where goods_type='丹药' and user_id={user_id}"
+        cur = self.conn.cursor()
+        cur.execute(sql, )
         self.conn.commit()
 
     def update_back_j(self, user_id, goods_id, num=1, use_key=0):
@@ -2295,10 +2620,13 @@ class OtherSet(XiuConfig):
         if user_exp >= need_exp:
             pass
         else:
-            return f"道友的修为不足以突破！距离下次突破需要{need_exp - user_exp}修为！突破境界为：{is_updata_level} 请道友继续<qqbot-cmd-input text=\"修炼\" show=\"修炼\" reference=\"false\" />后再来突破。"
+            return f"道友的修为不足以突破！距离下次突破需要{need_exp - user_exp}修为！突破境界为：{is_updata_level} 请道友继续<qqbot-cmd-input text=\"修炼\" show=\"修炼\" />后再来突破。"
 
-        success_rate = True if random.randint(0, 100) < rate else False
-
+      #  success_rate = True if random.randint(0, 100) < rate else False
+        if rate >= 100:
+            success_rate = True
+        else:
+            success_rate = random.randint(0, 100) < rate
         if success_rate:
             return [self.level[now_index + 1]]
         else:
@@ -2417,8 +2745,16 @@ class OtherSet(XiuConfig):
 
     def send_hp_mp(self, user_id, hp, mp):
         user_msg = XiuxianDateManage().get_user_info_with_id(user_id)
-        max_hp = int(user_msg['exp'] / 2)
-        max_mp = int(user_msg['exp'])
+        if user_msg['root_type'] == '轮回道果':
+            max_hp = int(user_msg['exp'] * 0.65)
+            max_mp = int(user_msg['exp'] * 1.2)
+        elif user_msg['root_type'] == '真·轮回道果':
+            max_hp = int(user_msg['exp'] * 0.85)
+            max_mp = int(user_msg['exp'] * 1.5)
+
+        else:        
+            max_hp = int(user_msg['exp'] / 2)
+            max_mp = int(user_msg['exp'])
 
         msg = []
         hp_mp = []
@@ -2462,12 +2798,10 @@ def final_user_data(user_data, columns):
     user_dict = dict(zip((col[0] for col in columns), user_data))
     
     # 通过字段名称获取相应的值
-    impart_data = xiuxian_impart.get_user_info_with_id(user_dict['user_id'])
-    if impart_data:
-        pass
-    else:
+    impart_data = xiuxian_impart.get_user_impart_info_with_id(user_dict['user_id'])
+    if impart_data is None:
         xiuxian_impart._create_user(user_dict['user_id'])
-    impart_data = xiuxian_impart.get_user_info_with_id(user_dict['user_id'])
+    impart_data = xiuxian_impart.get_user_impart_info_with_id(user_dict['user_id'])
     impart_hp_per = impart_data['impart_hp_per'] if impart_data is not None else 0
     impart_mp_per = impart_data['impart_mp_per'] if impart_data is not None else 0
     impart_atk_per = impart_data['impart_atk_per'] if impart_data is not None else 0
@@ -2571,7 +2905,19 @@ class XIUXIAN_IMPART_BUFF:
     "exp_day" integer DEFAULT 0,
     "wish" integer DEFAULT 0
     );""")
-
+        try:
+            c.execute(f"SELECT count(1) FROM INVITE")
+        except sqlite3.OperationalError:
+            c.execute('''CREATE TABLE IF NOT EXISTS INVITE (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        group_id INTEGER NOT NULL,
+                        user_id INTEGER NOT NULL,
+                        real_group_id INTEGER,
+                        real_user_id INTEGER,
+                        timestamp integer DEFAULT 0
+                    );''')
+            logger.opt(colors=True).info("<green>INVITE 表已创建！</green>")
+            
         for s in config_impart.sql_table_impart_buff:
             try:
                 c.execute(f"select {s} from xiuxian_impart")
@@ -2608,7 +2954,7 @@ class XIUXIAN_IMPART_BUFF:
             c.execute(sql, (user_id,))
             self.conn.commit()
 
-    def get_user_info_with_id(self, user_id):
+    def get_user_impart_info_with_id(self, user_id):
         """根据USER_ID获取用户impart_buff信息"""
         cur = self.conn.cursor()
         sql = f"select * from xiuxian_impart WHERE user_id=?"
@@ -2620,7 +2966,67 @@ class XIUXIAN_IMPART_BUFF:
             return user_dict
         else:
             return None
-        
+
+    def insert_invite(self, group_id, user_id, real_group_id=None, real_user_id=None):
+        """插入事件数据"""
+        c = self.conn.cursor()
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        try:
+            c.execute('''
+                SELECT 1 FROM INVITE WHERE group_id = ? AND user_id = ?
+            ''', (group_id, user_id))
+            records = c.fetchone()
+
+            if records:
+                return False  # 返回 False 表示未插入        
+            c.execute('''
+                INSERT INTO INVITE (group_id, user_id, real_group_id, real_user_id, timestamp)
+                VALUES (?, ?, ?, ?, ?)
+            ''', (group_id, user_id, real_group_id, real_user_id, timestamp))
+            self.conn.commit()  
+            return True  # 返回 True 表示插入成功
+        except sqlite3.Error as e:
+            self.conn.rollback()  # 回滚事务，确保数据库状态一致
+            return False
+        finally:
+            c.close()        
+
+    def get_ivite_with_gid(self, group_id):
+        """根据USER_ID获取用户信息,不获取功法加成"""
+        cur = self.conn.cursor()
+        sql = f"select * from INVITE WHERE group_id=?"
+        cur.execute(sql, (group_id,))
+        result = cur.fetchone()
+        if result:
+            columns = [column[0] for column in cur.description]
+            user_dict = dict(zip(columns, result))
+            return user_dict
+        else:
+            return None
+
+    def delete_invite(self, group_id):
+        """根据 user_id 删除邀请"""    
+        sql = 'DELETE FROM INVITE WHERE group_id = ?'
+        cur = self.conn.cursor()
+        cur.execute(sql, (group_id,))  
+        self.conn.commit()
+
+    def get_invite_num(self, user_id):
+        """
+        获取特定 user_id 在 INVITE 表中的总条数
+        """
+        sql = "SELECT count(1) FROM INVITE WHERE user_id = ?"
+        cur = self.conn.cursor()  # 获取游标
+        try:
+            cur.execute(sql, (user_id,))  # 传递参数执行查询
+            result = cur.fetchone()
+            # 返回 user_id 的总条数
+            return result[0] if result else 0
+        except sqlite3.Error as e:
+            logger.error(f"查询时发生错误: user_id={user_id}, 错误信息: {e}")
+            return 0
+        finally:
+            cur.close()  # 确保游标被关闭        
 
     def update_impart_hp_per(self, impart_num, user_id):
         """更新impart_hp_per"""
@@ -2821,7 +3227,7 @@ class XIUXIAN_IMPART_BUFF:
         self.conn.commit()
 
     def add_impart_exp_day(self, impart_num, user_id):
-        """add  impart_exp_day"""
+        """add impart_exp_day"""
         cur = self.conn.cursor()
         sql = "UPDATE xiuxian_impart SET exp_day=exp_day+? WHERE user_id=?"
         cur.execute(sql, (impart_num, user_id))
@@ -2829,7 +3235,7 @@ class XIUXIAN_IMPART_BUFF:
         return True
 
     def use_impart_exp_day(self, impart_num, user_id):
-        """use  impart_exp_day"""
+        """use impart_exp_day"""
         cur = self.conn.cursor()
         sql = "UPDATE xiuxian_impart SET exp_day=exp_day-? WHERE user_id=?"
         cur.execute(sql, (impart_num, user_id))
@@ -2838,6 +3244,7 @@ class XIUXIAN_IMPART_BUFF:
 
 
 def leave_harm_time(user_id):
+    """重伤恢复时间"""
     hp_speed = 25
     user_mes = sql_message.get_user_info_with_id(user_id)
     level = user_mes['level']
@@ -2857,11 +3264,11 @@ def leave_harm_time(user_id):
 
 
 async def impart_check(user_id):
-    if XIUXIAN_IMPART_BUFF().get_user_info_with_id(user_id) is None:
+    if XIUXIAN_IMPART_BUFF().get_user_impart_info_with_id(user_id) is None:
         XIUXIAN_IMPART_BUFF()._create_user(user_id)
-        return XIUXIAN_IMPART_BUFF().get_user_info_with_id(user_id)
+        return XIUXIAN_IMPART_BUFF().get_user_impart_info_with_id(user_id)
     else:
-        return XIUXIAN_IMPART_BUFF().get_user_info_with_id(user_id)
+        return XIUXIAN_IMPART_BUFF().get_user_impart_info_with_id(user_id)
     
 xiuxian_impart = XIUXIAN_IMPART_BUFF()
 
@@ -2942,7 +3349,9 @@ class UserBuffDate:
         buff_info = self.BuffInfo
         weapon_id = buff_info.get('faqi_buff', 0)
         if weapon_id != 0:
-            weapon_data = items.get_data_by_item_id(weapon_id)
+           # num = XiuxianDateManage.goods_num(self.user_id, weapon_id)         
+          #  if num >= 1:
+            weapon_data = items.get_data_by_item_id(weapon_id)  
         return weapon_data
 
     def get_user_armor_buff_data(self):
@@ -2950,6 +3359,8 @@ class UserBuffDate:
         buff_info = self.BuffInfo
         armor_buff_id = buff_info.get('armor_buff', 0)
         if armor_buff_id != 0:
+           # num = XiuxianDateManage.goods_num(self.user_id, weapon_id)         
+           # if num >= 1:
             armor_buff_data = items.get_data_by_item_id(armor_buff_id)
         return armor_buff_data
 
@@ -2964,16 +3375,16 @@ def get_weapon_info_msg(weapon_id, weapon_info=None):
     msg = ''
     if weapon_info is None:
         weapon_info = items.get_data_by_item_id(weapon_id)
-    atk_buff_msg = f"提升{int(weapon_info['atk_buff'] * 100)}%攻击力！" if weapon_info['atk_buff'] != 0 else ''
-    crit_buff_msg = f"提升{int(weapon_info['crit_buff'] * 100)}%会心率！" if weapon_info['crit_buff'] != 0 else ''
-    crit_atk_msg = f"提升{int(weapon_info['critatk'] * 100)}%会心伤害！" if weapon_info['critatk'] != 0 else ''
+    atk_buff_msg = f"提升{round(weapon_info['atk_buff'] * 100)}%攻击力！" if weapon_info['atk_buff'] != 0 else ''
+    crit_buff_msg = f"提升{round(weapon_info['crit_buff'] * 100)}%会心率！" if weapon_info['crit_buff'] != 0 else ''
+    crit_atk_msg = f"提升{round(weapon_info['critatk'] * 100)}%会心伤害！" if weapon_info['critatk'] != 0 else ''
     # def_buff_msg = f"提升{int(weapon_info['def_buff'] * 100)}%减伤率！" if weapon_info['def_buff'] != 0 else ''
     def_buff_msg = f"{'提升' if weapon_info['def_buff'] > 0 else '降低'}{int(abs(weapon_info['def_buff']) * 100)}%减伤率！" if weapon_info['def_buff'] != 0 else ''
     zw_buff_msg = f"装备专属武器时提升伤害！！" if weapon_info['zw'] != 0 else ''
-    mp_buff_msg = f"降低真元消耗{int(weapon_info['mp_buff'] * 100)}%！" if weapon_info['mp_buff'] != 0 else ''
+    mp_buff_msg = f"降低真元消耗{round(weapon_info['mp_buff'] * 100)}%！" if weapon_info['mp_buff'] != 0 else ''
   #  msg += f"名字：{weapon_info['name']}\n"
-    msg += f"\n<qqbot-cmd-input text=\"使用{weapon_info['name']}\" show=\"{weapon_info['name']}\" reference=\"false\" /> {weapon_info['level']}"
-    msg += f"\n效果：{atk_buff_msg}{crit_buff_msg}{crit_atk_msg}{def_buff_msg}{mp_buff_msg}{zw_buff_msg}"
+    msg += f"\n{weapon_info['item_type']}：<qqbot-cmd-input text=\"使用{weapon_info['name']}\" show=\"{weapon_info['name']}\" /> {weapon_info['level']}"
+    msg += f"\n效果：{atk_buff_msg}{crit_buff_msg}{crit_atk_msg}{def_buff_msg}{mp_buff_msg}{zw_buff_msg}\n\n>{weapon_info['desc']}"
     return msg
 
 def get_weapon_info_msg_1(weapon_id, weapon_info=None):
@@ -2986,14 +3397,14 @@ def get_weapon_info_msg_1(weapon_id, weapon_info=None):
     msg = ''
     if weapon_info is None:
         weapon_info = items.get_data_by_item_id(weapon_id)
-    atk_buff_msg = f"提升{int(weapon_info['atk_buff'] * 100)}%攻击力！" if weapon_info['atk_buff'] != 0 else ''
-    crit_buff_msg = f"提升{int(weapon_info['crit_buff'] * 100)}%会心率！" if weapon_info['crit_buff'] != 0 else ''
-    crit_atk_msg = f"提升{int(weapon_info['critatk'] * 100)}%会心伤害！" if weapon_info['critatk'] != 0 else ''
-    def_buff_msg = f"提升{int(weapon_info['def_buff'] * 100)}%减伤率！" if weapon_info['def_buff'] != 0 else ''
+    atk_buff_msg = f"提升{round(weapon_info['atk_buff'] * 100)}%攻击力！" if weapon_info['atk_buff'] != 0 else ''
+    crit_buff_msg = f"提升{round(weapon_info['crit_buff'] * 100)}%会心率！" if weapon_info['crit_buff'] != 0 else ''
+    crit_atk_msg = f"提升{round(weapon_info['critatk'] * 100)}%会心伤害！" if weapon_info['critatk'] != 0 else ''
+    def_buff_msg = f"{'提升' if weapon_info['def_buff'] > 0 else '降低'}{int(abs(weapon_info['def_buff']) * 100)}%减伤率！" if weapon_info['def_buff'] != 0 else ''
     zw_buff_msg = f"装备专属武器时提升伤害！！" if weapon_info['zw'] != 0 else ''
-    mp_buff_msg = f"降低真元消耗{int(weapon_info['mp_buff'] * 100)}%！" if weapon_info['mp_buff'] != 0 else ''
+    mp_buff_msg = f"降低真元消耗{round(weapon_info['mp_buff'] * 100)}%！" if weapon_info['mp_buff'] != 0 else ''
   #  msg += f"名字：{weapon_info['name']}\n"
-    msg += f"\n><qqbot-cmd-input text=\"查看物品效果{weapon_id}\" show=\"{weapon_info['name']}\" reference=\"false\" /> {weapon_info['level']}"
+    msg += f"\n><qqbot-cmd-input text=\"查看物品效果{weapon_id}\" show=\"{weapon_info['name']}\" /> {weapon_info['level']}"
  #   msg += f"\n>效果：{atk_buff_msg}{crit_buff_msg}{crit_atk_msg}{def_buff_msg}{mp_buff_msg}{zw_buff_msg}"
     return msg
 
@@ -3007,12 +3418,12 @@ def get_armor_info_msg(armor_id, armor_info=None):
     msg = ''
     if armor_info is None:
         armor_info = items.get_data_by_item_id(armor_id)
-    def_buff_msg = f"提升{int(armor_info['def_buff'] * 100)}%减伤率！"
-    atk_buff_msg = f"提升{int(armor_info['atk_buff'] * 100)}%攻击力！" if armor_info['atk_buff'] != 0 else ''
-    crit_buff_msg = f"提升{int(armor_info['crit_buff'] * 100)}%会心率！" if armor_info['crit_buff'] != 0 else ''
+    def_buff_msg = f"提升{round(armor_info['def_buff'] * 100)}%减伤率！"
+    atk_buff_msg = f"提升{round(armor_info['atk_buff'] * 100)}%攻击力！" if armor_info['atk_buff'] != 0 else ''
+    crit_buff_msg = f"提升{round(armor_info['crit_buff'] * 100)}%会心率！" if armor_info['crit_buff'] != 0 else ''
  #   msg += f"物品名称   物品品阶   \n"
-    msg += f"\n<qqbot-cmd-input text=\"查看物品效果{armor_id}\" show=\"{armor_info['name']}\" reference=\"false\" /> {armor_info['level']}"
-    msg += f"\n效果：{def_buff_msg}{atk_buff_msg}{crit_buff_msg}"
+    msg += f"\n{armor_info['item_type']}：<qqbot-cmd-input text=\"查看物品效果{armor_id}\" show=\"{armor_info['name']}\" /> {armor_info['level']} "
+    msg += f"\n效果：{def_buff_msg}{atk_buff_msg}{crit_buff_msg}\n\n>{armor_info['desc']}"
     return msg
 
 def get_armor_info_msg_1(armor_id, armor_info=None):
@@ -3025,11 +3436,11 @@ def get_armor_info_msg_1(armor_id, armor_info=None):
     msg = ''
     if armor_info is None:
         armor_info = items.get_data_by_item_id(armor_id)
-    def_buff_msg = f"提升{int(armor_info['def_buff'] * 100)}%减伤率！"
-    atk_buff_msg = f"提升{int(armor_info['atk_buff'] * 100)}%攻击力！" if armor_info['atk_buff'] != 0 else ''
-    crit_buff_msg = f"提升{int(armor_info['crit_buff'] * 100)}%会心率！" if armor_info['crit_buff'] != 0 else ''
+    def_buff_msg = f"提升{round(armor_info['def_buff'] * 100)}%减伤率！"
+    atk_buff_msg = f"提升{round(armor_info['atk_buff'] * 100)}%攻击力！" if armor_info['atk_buff'] != 0 else ''
+    crit_buff_msg = f"提升{round(armor_info['crit_buff'] * 100)}%会心率！" if armor_info['crit_buff'] != 0 else ''
  #   msg += f"物品名称   物品品阶   \n"
-    msg += f"\n><qqbot-cmd-input text=\"查看物品效果{armor_id}\" show=\"{armor_info['name']}\" reference=\"false\" /> {armor_info['level']}"
+    msg += f"\n><qqbot-cmd-input text=\"查看物品效果{armor_id}\" show=\"{armor_info['name']}\" /> {armor_info['level']}"
  #   msg += f"\n>效果：{def_buff_msg}{atk_buff_msg}{crit_buff_msg}"
     return msg
 

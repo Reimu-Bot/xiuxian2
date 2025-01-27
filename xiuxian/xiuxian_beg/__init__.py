@@ -1,15 +1,17 @@
 import random
 from datetime import datetime
 from ..xiuxian_utils.lay_out import assign_bot, Cooldown
-from nonebot import require, on_command
+from nonebot import require, on_command, on_notice
 from nonebot.adapters.onebot.v11 import (
     Bot,
     GROUP,
     GroupMessageEvent,
+    GroupRequestEvent,
+    NoticeEvent,
     MessageSegment
 )
 from nonebot.log import logger
-from ..xiuxian_utils.xiuxian2_handle import XiuxianDateManage
+from ..xiuxian_utils.xiuxian2_handle import XiuxianDateManage, XIUXIAN_IMPART_BUFF
 from ..xiuxian_config import XiuConfig
 from ..xiuxian_utils.item_json import Items
 from ..xiuxian_utils.data_source import jsondata
@@ -24,9 +26,9 @@ cache_level_help = {}
 scheduler = require("nonebot_plugin_apscheduler").scheduler
 cache_beg_help = {}
 sql_message = XiuxianDateManage()  # sql类
-
+xiuxian_impart = XIUXIAN_IMPART_BUFF()
 # 重置奇缘
-@scheduler.scheduled_job("cron", hour=0, minute=0)
+@scheduler.scheduled_job("cron", hour=0, minute=59)
 async def xiuxian_beg_():
     sql_message.beg_remake()
     logger.opt(colors=True).info(f"<green>仙途奇缘重置成功！</green>")
@@ -39,9 +41,127 @@ __beg_help__ = f"""
 诸位道友，若不信此言，可自行一试，便知天机不可泄露，天道不容欺。
 """.strip()
 
+__invite_help__ = f"""
+#邀请奖励帮助:
+感谢邀请灵梦加入群聊ヾ(o◕∀◕)ﾉヾ！现在，邀请灵梦进群即可领取200万灵石的奖励，帮助你在修仙之路上更进一步！
+
+**特别提醒**：为了维护群聊的和谐，若因邀请后将灵梦踢出，将会随机扣除150万~230万灵石。希望大家珍惜灵梦的陪伴，感谢理解与支持！
+""".strip()
+
 beg_stone = on_command("仙途奇缘", permission=GROUP, priority=7, block=True)
 beg_help = on_command("仙途奇缘帮助", permission=GROUP, priority=7, block=True)
+invite_help = on_command("修仙邀请帮助", permission=GROUP, priority=7, block=True)
+get_invite_reward = on_command("领取邀请奖励", permission=GROUP, priority=7, block=True)
+notice_handler = on_notice(priority=5)
 
+# 处理 kick_me 和 invite 类型事件
+@notice_handler.handle()
+async def handle_kick_invite(event: NoticeEvent):
+    # 判断是否为 kick_me 或 invite 事件
+    if event.notice_type == "group_increase" and getattr(event, "sub_type", "") == "invite":
+        # 处理 invite 事件
+        nowtime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        group_id = event.group_id
+        user_id = event.user_id  # 邀请人的 ID
+        real_group_id = getattr(event, "real_group_id", None)  # 实际群 ID（可能适配器支持才会存在）
+        real_user_id = getattr(event, "real_user_id", None)  # 实际用户 ID
+        xiuxian_impart.insert_invite(group_id, user_id, real_group_id, real_user_id)
+      #  invite_num = xiuxian_impart.get_invite_num(user_id)
+       # if invite_num < 6:
+      #     sql_message.update_ls(user_id, 3000000, 1)             
+        logger.success(
+            f"捕获 invite 事件: group_id={group_id}, user_id={user_id}, real_group_id={real_group_id}, real_user_id={real_user_id}"
+        )
+
+    elif event.notice_type == "group_decrease" and getattr(event, "sub_type", "") == "kick_me":
+        # 处理 kick_me 事件
+        nowtime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        group_id = event.group_id
+       # user_id = event.user_id  
+        real_group_id = getattr(event, "real_group_id", None)  # 实际群 ID
+        real_user_id = getattr(event, "real_user_id", None)  # 实际用户 ID
+        invite_info = xiuxian_impart.get_ivite_with_gid(group_id)
+       # print(invite_info)
+        if invite_info:       
+            cost = random.randint(1500000, 2300000)
+            user_id = invite_info["user_id"]
+            sql_message.update_ls(user_id, cost, 2)
+           # xiuxian_impart.delete_invite(group_id)        
+            # 打印并记录日志
+            logger.success(
+                f"捕获 kick_me 事件: group_id={group_id}, user_id={user_id}, real_group_id={real_group_id}, real_user_id={real_user_id}"
+            )
+
+@invite_help.handle(parameterless=[Cooldown(at_sender=False)])
+async def invite_help_(bot: Bot, event: GroupMessageEvent, session_id: int = CommandObjectID()):
+    bot, send_group_id = await assign_bot(bot=bot, event=event)
+    if session_id in cache_beg_help:
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment.image(cache_beg_help[session_id]))
+        await beg_help.finish()
+    else:
+        msg = __invite_help__
+        params_items = [('msg', msg)]               
+        buttons = [
+            [(2, '领取邀请奖励', '领取邀请奖励', True)],  
+            [(2, '仙途奇缘', '仙途奇缘', True), (2, '修仙签到', '修仙签到', True)],               
+        ]
+       # 调用 markdown 函数生成数据
+        data = await markdown(params_items, buttons)
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
+    await invite_help.finish()
+
+@get_invite_reward.handle(parameterless=[Cooldown(at_sender=False)])
+async def get_invite_reward_(bot: Bot, event: GroupMessageEvent):
+    bot, send_group_id = await assign_bot(bot=bot, event=event)
+    user_id = event.get_user_id()
+    isUser, user_info, msg = check_user(event)   
+    if not isUser:
+        params_items = [('msg', msg)]               
+        buttons = [
+            [(2, '我要修仙', '我要修仙', True)],            
+        ]
+       # 调用 markdown 函数生成数据
+        data = await markdown(params_items, buttons)
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
+        await get_invite_reward.finish()  
+    invite_num = xiuxian_impart.get_invite_num(user_id)
+    ivt_num = user_info["invite_num"]
+  #  if  ivt_num <= 5:
+ #       invite_num = 5 if invite_num > 5 else invite_num
+    if not invite_num or ivt_num >= invite_num:
+        msg = f'没有获取到道友的邀请记录哦，快去邀请灵梦吧'
+        params_items = [('msg', msg)]               
+        buttons = [
+            [(0, '邀请灵梦', f'https://bot.q.qq.com/s/f5n2re99n?id=102075800', True)],                
+        ]
+       # 调用 markdown 函数生成数据
+        data = await markdown(params_items, buttons)
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
+        await get_invite_reward.finish()
+        cost = (invite_num - ivt_num) * 2000000
+        sql_message.update_ls(user_id, cost, 1) 
+        sql_message.update_invite_num(user_id, invite_num - ivt_num, 1)
+        msg = f"道友邀请了灵梦加入{invite_num - ivt_num}个群聊 \n获得灵石奖励{cost}枚"
+        params_items = [('msg', msg)]               
+        buttons = [
+            [(2, '领取邀请奖励', '领取邀请奖励', True)],  
+            [(2, '仙途奇缘', '仙途奇缘', True), (2, '修仙签到', '修仙签到', True)],               
+        ]
+       # 调用 markdown 函数生成数据
+        data = await markdown(params_items, buttons)
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data}))
+        await get_invite_reward.finish() 
+    else:   
+        msg = f"道友的邀请奖励已达到上限！可以探索其他精彩玩法，继续享受修仙的乐趣吧！"
+        params_items = [('msg', msg)]               
+        buttons = [ 
+            [(2, '仙途奇缘', '仙途奇缘', True), (2, '修仙签到', '修仙签到', True)],               
+        ]
+       # 调用 markdown 函数生成数据
+        data = await markdown(params_items, buttons)
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data}))
+        await get_invite_reward.finish()        
+        
 @beg_help.handle(parameterless=[Cooldown(at_sender=False)])
 async def beg_help_(bot: Bot, event: GroupMessageEvent, session_id: int = CommandObjectID()):
     bot, send_group_id = await assign_bot(bot=bot, event=event)
@@ -60,10 +180,19 @@ async def beg_help_(bot: Bot, event: GroupMessageEvent, session_id: int = Comman
     await beg_help.finish()
 
 @beg_stone.handle(parameterless=[Cooldown(at_sender=False)])
-async def beg_stone(bot: Bot, event: GroupMessageEvent):
+async def beg_stone_(bot: Bot, event: GroupMessageEvent):
     bot, send_group_id = await assign_bot(bot=bot, event=event)
     user_id = event.get_user_id()
-    isUser, user_info, _ = check_user(event)    
+    isUser, user_info, msg = check_user(event)   
+    if not isUser:
+        params_items = [('msg', msg)]               
+        buttons = [
+            [(2, '我要修仙', '我要修仙', True)],            
+        ]
+       # 调用 markdown 函数生成数据
+        data = await markdown(params_items, buttons)
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
+        await beg_stone.finish()     
     user_msg = sql_message.get_user_info_with_id(user_id)
     user_root = user_msg['root_type']
     sect = user_info['sect_id']
@@ -74,16 +203,7 @@ async def beg_stone(bot: Bot, event: GroupMessageEvent):
     now_time = datetime.now()
     diff_time = now_time - create_time
     diff_days = diff_time.days # 距离创建账号时间的天数
-    
-    if not isUser:
-        params_items = [('msg', msg)]               
-        buttons = [
-            [(2, '我要修仙', '我要修仙', True)],            
-        ]
-       # 调用 markdown 函数生成数据
-        data = await markdown(params_items, buttons)
-        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
-        await beg_stone.finish()    
+      
     sql_message.update_last_check_info_time(user_id) # 更新查看修仙信息时间
     if sect != None and user_root == "伪灵根":
         msg = f"道友已有宗门庇佑，又何必来此寻求机缘呢？"

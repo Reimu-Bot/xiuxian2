@@ -60,6 +60,16 @@ async def bank_(bot: Bot, event: GroupMessageEvent, args: Tuple[Any, ...] = Rege
         data = await markdown(params_items, buttons)
         await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
         await bank.finish()
+    if user_info['stone'] < 0:
+        msg = "道友还有负债，禁止使用灵庄！"
+        params_items = [('msg', msg)]               
+        buttons = [
+            [(2, '修仙签到', '修仙签到', False)],            
+        ]
+       # 调用 markdown 函数生成数据
+        data = await markdown(params_items, buttons)
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
+        await bank.finish()         
     mode = args[0]  # 存灵石、取灵石、升级会员、信息查看
     num = args[1]  # 数值
     if mode is None:
