@@ -8,6 +8,8 @@ from ..xiuxian_utils.xiuxian2_handle import OtherSet
 def workmake(work_level, exp, user_level):
     if work_level == '江湖好手':
         work_level = '江湖好手'
+    elif work_level in ['空灵境','空玄境','空劫境','踏天境','无上境']:
+        work_level = '碎涅境'
     else:
         work_level = work_level[:3]  # 取境界前3位，补全初期、中期、圆满任务可不取
 

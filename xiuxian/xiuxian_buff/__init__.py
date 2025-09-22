@@ -13,6 +13,7 @@ from nonebot.adapters.onebot.v11 import (
 )
 from nonebot.log import logger
 from datetime import datetime
+from nonebot.permission import SUPERUSER
 from nonebot import on_command, on_fullmatch, require
 from ..xiuxian_utils.xiuxian2_handle import (
     XiuxianDateManage, OtherSet, get_player_info, 
@@ -66,6 +67,7 @@ blessed_spot_rename = on_command("洞天福地改名", priority=7, permission=GR
 ling_tian_up = on_fullmatch("灵田开垦", priority=5, permission=GROUP, block=True)
 del_exp_decimal = on_fullmatch("抑制黑暗动乱", priority=9, permission=GROUP, block=True)
 my_exp_num = on_fullmatch("我的双修次数", priority=9, permission=GROUP, block=True)
+two_exp_cd_refresh = on_command("xf刷新修仙日常", permission=SUPERUSER, priority=10, block=True)
 
 __buff_help__ = f"""
 #功法帮助信息:
@@ -82,13 +84,23 @@ __buff_help__ = f"""
 """.strip()
 
 
-# 每日23点重置用户宗门任务次数、宗门丹药领取次数
-@two_exp_cd_up.scheduled_job("cron", hour=22, minute=59)
+# 每日23点重置用户双修 秘境 悬赏领取次数
+@two_exp_cd_up.scheduled_job("cron", hour=23, minute=30)
 async def two_exp_cd_up_():
     sql_message.update_shuangxiu(reset_all=True)
     sql_message.update_mijing(reset_all=True)
+    sql_message.reset_work_num()
     logger.opt(colors=True).info(f"<green>双修次数已更新！</green>")
 
+
+@two_exp_cd_refresh.handle(parameterless=[Cooldown(at_sender=False)])
+async def two_exp_cd_refresh_(bot: Bot, event: GroupMessageEvent, args: Message = CommandArg()):
+    bot, send_group_id = await assign_bot(bot=bot, event=event)
+    sql_message.update_shuangxiu(reset_all=True)
+    sql_message.update_mijing(reset_all=True)
+    sql_message.reset_work_num()
+    msg = f"修仙日常已刷新"
+    await bot.send_group_msg(group_id=send_group_id, message=msg)
 
 @buff_help.handle(parameterless=[Cooldown(at_sender=False)])
 async def buff_help_(bot: Bot, event: GroupMessageEvent, session_id: int = CommandObjectID()):
@@ -421,7 +433,7 @@ async def qc_(bot: Bot, event: GroupMessageEvent, args: Message = CommandArg()):
         result, victor = Player_fight(player1, player2, 1, bot.self_id)
        # await send_msg_handler(bot, event, [f"```\n{result}\n```"])
         msg_content = '\n'.join([node['data']['content'] for node in result if 'content' in node['data']])
-        msg = f"```\n{msg_content}\n```"
+        msg = f"```python{msg_content}```"
         params_items = [('msg', msg)] 
         buttons = [
             [(2, '切磋', '切磋', False)],            
@@ -813,7 +825,7 @@ async def xiuxian_exp_up_(bot: Bot, event: GroupMessageEvent, args: Message = Co
         sql_message.update_exp(user_id, user_get_exp_max)
         sql_message.update_power2(user_id)  # 更新战力
         result_msg, result_hp_mp = OtherSet().send_hp_mp(user_id, int(exp * hp_speed * (1 + mainbuffclors)), int(exp * mp_speed))
-        sql_message.update_user_attribute(user_id, result_hp_mp[0], result_hp_mp[1], int(result_hp_mp[2] / 10))
+        sql_message.update_user_attribute(user_id, result_hp_mp[0], result_hp_mp[1], int(result_hp_mp[2]))
         msg = f"修炼结束，本次修炼到达上限，共增加修为：{user_get_exp_max}{result_msg[0]}{result_msg[1]}"        
        #不需要灵石
        # sql_message.update_ls(user_id, int(user_get_exp_max * 10), 2)
@@ -830,7 +842,7 @@ async def xiuxian_exp_up_(bot: Bot, event: GroupMessageEvent, args: Message = Co
         sql_message.update_power2(user_id)  # 更新战力
      #   sql_message.update_user_stamina(user_id, 1, 2)
         result_msg, result_hp_mp = OtherSet().send_hp_mp(user_id, int(exp * hp_speed * (1 + mainbuffclors)), int(exp * mp_speed))
-        sql_message.update_user_attribute(user_id, result_hp_mp[0], result_hp_mp[1], int(result_hp_mp[2] / 10))
+        sql_message.update_user_attribute(user_id, result_hp_mp[0], result_hp_mp[1], int(result_hp_mp[2]))
         msg = f"修炼结束，本次修炼共增加修为：{exp} {result_msg[0]}{result_msg[1]}"        
         #sql_message.update_ls(user_id, int(stone_num), 2)
         params_items = [('msg', msg)]               
@@ -966,7 +978,7 @@ async def out_closing_(bot: Bot, event: GroupMessageEvent):
             sql_message.update_power2(user_id)  # 更新战力
 
             result_msg, result_hp_mp = OtherSet().send_hp_mp(user_id, int(exp * hp_speed * (1 + mainbuffclors)), int(exp * mp_speed))
-            sql_message.update_user_attribute(user_id, result_hp_mp[0], result_hp_mp[1], int(result_hp_mp[2] / 10))
+            sql_message.update_user_attribute(user_id, result_hp_mp[0], result_hp_mp[1], int(result_hp_mp[2]))
             msg = f"闭关结束，本次闭关到达上限，共增加修为：{user_get_exp_max}{result_msg[0]}{result_msg[1]}"
             params_items = [('msg', msg)]               
             buttons = [
@@ -991,7 +1003,7 @@ async def out_closing_(bot: Bot, event: GroupMessageEvent):
 
                     result_msg, result_hp_mp = OtherSet().send_hp_mp(user_id, int(exp * hp_speed * (1 + mainbuffclors)), int(exp * mp_speed))
                     sql_message.update_user_attribute(user_id, result_hp_mp[0], result_hp_mp[1],
-                                                      int(result_hp_mp[2] / 10))
+                                                      int(result_hp_mp[2]))
                     msg = f"闭关结束，共闭关{exp_time}分钟，本次闭关增加修为：{exp}，消耗灵石{int(exp / 2)}枚{result_msg[0]}{result_msg[1]}"
                     params_items = [('msg', msg)]               
                     buttons = [
@@ -1009,7 +1021,7 @@ async def out_closing_(bot: Bot, event: GroupMessageEvent):
                     sql_message.update_power2(user_id)  # 更新战力
                     result_msg, result_hp_mp = OtherSet().send_hp_mp(user_id, int(exp * hp_speed * (1 + mainbuffclors)), int(exp * mp_speed))
                     sql_message.update_user_attribute(user_id, result_hp_mp[0], result_hp_mp[1],
-                                                      int(result_hp_mp[2] / 10))
+                                                      int(result_hp_mp[2]))
                     msg = f"闭关结束，共闭关{exp_time}分钟，本次闭关增加修为：{exp}，消耗灵石{user_stone}枚{result_msg[0]}{result_msg[1]}"
                     params_items = [('msg', msg)]               
                     buttons = [
@@ -1024,7 +1036,7 @@ async def out_closing_(bot: Bot, event: GroupMessageEvent):
                 sql_message.update_exp(user_id, exp)
                 sql_message.update_power2(user_id)  # 更新战力
                 result_msg, result_hp_mp = OtherSet().send_hp_mp(user_id, int(exp * hp_speed * (1 + mainbuffclors)), int(exp * mp_speed))
-                sql_message.update_user_attribute(user_id, result_hp_mp[0], result_hp_mp[1], int(result_hp_mp[2] / 10))
+                sql_message.update_user_attribute(user_id, result_hp_mp[0], result_hp_mp[1], int(result_hp_mp[2]))
                 msg = f"闭关结束，共闭关{exp_time}分钟，本次闭关增加修为：{exp}{result_msg[0]}{result_msg[1]}"
                 params_items = [('msg', msg)]               
                 buttons = [

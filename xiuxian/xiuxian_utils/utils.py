@@ -615,13 +615,13 @@ async def markdown_s(params_items: List[Tuple[str, str]], buttons_items: List[Li
 
     return data
     
-async def get_old_user_id(user_id):
-    url = "http://116.196.120.126:15630/getid"
+def get_old_user_id(user_id):
+    url = "https://webhook.fencini.com:15630/getid"
     params = {
         "id": user_id,
         "type": 2
     }
-    response = requests.get(url, params=params)
+    response = requests.get(url, params=params, verify=False)
     if response.status_code == 200:
         return response.json().get("id")
     else:

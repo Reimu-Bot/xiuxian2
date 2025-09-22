@@ -64,6 +64,7 @@ back_to_database = on_command("转移交易数据", priority=8, permission=GROUP
 goods_re_root = on_command("炼金", priority=6, permission=GROUP, block=True)
 goods_allre_root = on_command("一键炼金", priority=6, permission=GROUP, block=True)
 send_goods = on_command("赠送修仙道具", priority=6, permission=GROUP, block=True)
+send_yaocai_all = on_command("一键赠送药材", priority=6, permission=GROUP, block=True)
 shop = on_command("坊市查看", aliases={"查看坊市"}, priority=8, permission=GROUP, block=True)
 view_item = on_command("查看物品效果", aliases={"查看物品功效"}, priority=8, permission=GROUP, block=True)
 view_item_name = on_command("查看修仙物品", priority=8, permission=GROUP, block=True)
@@ -72,6 +73,7 @@ auction_view = on_command("仙市集会", aliases={"查看仙市集会"}, priori
 view_auction_item = on_command("拍卖品详情", aliases={"拍卖品详情查看"}, priority=8, permission=GROUP, block=True)
 shop_added = on_command("坊市上架", priority=10, permission=GROUP, block=True)
 shop_added_by_admin = on_command("系统坊市上架", priority=5, permission=SUPERUSER, block=True)
+get_double_yaocai = on_command("刷新重复药材", priority=5, permission=SUPERUSER, block=True)
 shop_off = on_command("坊市下架", priority=5, permission=GROUP, block=True)
 shop_off_all = on_fullmatch("清空坊市", priority=3, permission=SUPERUSER, block=True)
 main_back = on_command('我的背包', aliases={'我的物品'}, priority=10, permission=GROUP, block=True)
@@ -142,7 +144,7 @@ async def reset_day_num_scheduler_():
     sql_message.day_num_reset()
     logger.opt(colors=True).info(f"<green>每日丹药使用次数重置成功！</green>")
 
-@set_auction_by_scheduler.scheduled_job("cron", hour=auction_time_config['hours'], minute=auction_time_config['minutes'])
+@set_auction_by_scheduler.scheduled_job("cron", hour=14, minute=57)
 async def set_auction_by_scheduler_():
     global auction, auction_offer_flag, auction_offer_all_count, auction_offer_time_count
     
@@ -181,10 +183,9 @@ async def set_auction_by_scheduler_():
         return
 
         
-@end_auction_by_scheduler.scheduled_job("cron", hour=21, minute=59)  # 修正定时任务
+@end_auction_by_scheduler.scheduled_job("cron", hour=22, minute=5)  # 修正定时任务
 async def end_auction_by_scheduler_():
     global auction, auction_offer_time_count
-
     logger.opt(colors=True).info(f"<green>野生的大世界定时拍卖会结束了！！！</green>")
 
     # 获取所有拍卖数据，假设 sql_message.get_all_auction_data() 返回所有拍卖记录
@@ -1167,11 +1168,11 @@ async def send_goods_(bot: Bot, event: GroupMessageEvent, args: Message = Comman
 
     # 检查输入的数量是否在允许范围内
     if 1 <= int(args[1]) <= int(goods_num):
-        price = int(6000000 - get_item_msg_rank(goods_id) * 100000) / 4 * num
+        price = int(9000000 - get_item_msg_rank(goods_id) * 100000) / 4 * num
 
         # 检查价格是否为正值
         if price <= 0:
-            msg = "赠送失败。数量必须在 1 到 {goods_num} 之间，请重新输入。"
+            msg = f"赠送失败。数量必须在 1 到 {goods_num} 之间，请重新输入。"
             params_items = [('msg', msg)]               
             buttons = [
                 [(2, '赠送修仙道具', '赠送修仙道具', False)],            
@@ -1225,6 +1226,153 @@ async def send_goods_(bot: Bot, event: GroupMessageEvent, args: Message = Comman
     await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
     await send_goods.finish()
 
+@send_yaocai_all.handle(parameterless=[Cooldown(at_sender=False)])
+async def send_yaocai_all_(bot: Bot, event: GroupMessageEvent, args: Message = CommandArg()):
+    """一键赠送药材"""
+    bot, send_group_id = await assign_bot(bot=bot, event=event)
+    isUser, user_info, msg = check_user(event)
+    if not isUser:
+        params_items = [('msg', msg)]
+        buttons = [
+            [(2, '我要修仙', '我要修仙', True)],
+        ]
+        # 调用 markdown 函数生成数据
+        data = await markdown(params_items, buttons)
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data}))
+        await send_yaocai_all.finish()
+    now = datetime.now(pytz.timezone('Asia/Shanghai'))
+    current_hour = now.hour
+    if not (1 <= current_hour < 8):
+        msg = "请在丑时到卯时之间一键赠送。"
+        params_items = [('msg', msg)]
+        buttons = []
+        data = await markdown(params_items, buttons)
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data}))
+        await send_yaocai_all.finish()        
+    if user_info['stone'] < 0:
+        msg = "道友还有负债，还想送别人物品？"
+        params_items = [('msg', msg)]
+        buttons = [
+            [(2, '修仙签到', '修仙签到', True)],
+        ]
+        # 调用 markdown 函数生成数据
+        data = await markdown(params_items, buttons)
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data}))
+        await send_yaocai_all.finish()
+    user_id = user_info['user_id']
+    args = args.extract_plain_text().split()
+    if not args or len(args) < 1:
+        msg = "请输入要赠送道友。例如：一键赠送药材 道友"
+        params_items = [('msg', msg)]
+        buttons = [
+            [(2, '一键赠送药材', '一键赠送药材', False)],
+        ]
+        # 调用 markdown 函数生成数据
+        data = await markdown(params_items, buttons)
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data}))
+        await send_yaocai_all.finish()
+    give_name = args[0]
+
+    back_msg = sql_message.get_back_msg(user_id)  # 背包sql信息,list(back)
+    give_info = sql_message.get_user_info_with_name(give_name)
+    if give_info is None:
+        msg = "仙界物品不得给予凡人。"
+        params_items = [('msg', msg)]
+        buttons = [
+            [(2, '一键赠送药材', '一键赠送药材', False)],
+        ]
+        # 调用 markdown 函数生成数据
+        data = await markdown(params_items, buttons)
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data}))
+        await send_yaocai_all.finish()
+    give_id = give_info['user_id']
+    if int(give_id) == int(user_id):
+        msg = "笨蛋，不可赠送给自己！"
+        params_items = [('msg', msg)]
+        buttons = [
+            [(2, '一键赠送药材', '一键赠送药材', False)],
+        ]
+        data = await markdown(params_items, buttons)
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data}))
+        await send_yaocai_all.finish()
+    if back_msg is None:
+        msg = "道友的背包空空如也！"
+        params_items = [('msg', msg)]
+        buttons = [
+            [(2, '我的背包', '我的背包', True)],
+        ]
+        # 调用 markdown 函数生成数据
+        data = await markdown(params_items, buttons)
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data}))
+        await send_yaocai_all.finish()
+    yaocai_list = sql_message.get_all_yaocai_by_user(user_id)
+    # print(yaocai_list)
+    total_price = 0
+    valid_yaocai = []  # 存储有效的药材信息，用于后续更新数据库
+
+    for yaocai_info in yaocai_list:
+        goods_name = yaocai_info['goods_name']
+        goods_id = yaocai_info['goods_id']
+        goods_type = yaocai_info['goods_type']
+        goods_state = yaocai_info['state']
+        goods_num = yaocai_info['goods_num']
+        if goods_num <= 0:
+         #   print(f"无效的数量: {goods_num} 对于 {goods_name}")
+            continue
+        goods_bind_num = yaocai_info['bind_num']
+        if goods_bind_num > 0:
+          #  print(f"绑定物品: {goods_num} 对于 {goods_name}")
+            continue
+        price = int(9000000 - get_item_msg_rank(goods_id) * 100000) / 4 * goods_num
+        if price <= 0:
+            msg = f"赠送失败。手续费必须为正。"
+            params_items = [('msg', msg)]               
+            buttons = [
+                [(2, '赠送修仙道具', '赠送修仙道具', False)],            
+            ]
+           # 调用 markdown 函数生成数据
+            data = await markdown(params_items, buttons)
+            await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
+            await send_goods.finish()        
+        valid_yaocai.append(yaocai_info)
+        total_price += price
+    if total_price > user_info["stone"]:
+        msg = f"道友的灵石只有{user_info['stone']},不足以支付手续，无法一键赠送。请单独赠送"
+        params_items = [('msg', msg)]
+        buttons = [
+            [(2, '赠送修仙道具', '赠送修仙道具', False)],
+        ]
+        # 调用 markdown 函数生成数据
+        data = await markdown(params_items, buttons)
+        await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data}))
+        await send_yaocai_all.finish()
+
+    # 灵石足够，更新数据库
+    sql_message.update_ls(user_id, total_price, 2)
+    for yaocai_info in valid_yaocai:
+        goods_id = yaocai_info['goods_id']
+        goods_num = yaocai_info['goods_num']
+        goods_name = yaocai_info['goods_name']
+        goods_type = yaocai_info['goods_type']
+        sql_message.update_back_j(user_id, goods_id, num=goods_num)
+        sql_message.send_back(give_id, goods_id, goods_name, goods_type, goods_num, 0)
+
+    msg = f"道友消耗{total_price:,}枚灵石，把药材一键赠送给了{give_name}！"
+    params_items = [('msg', msg)]
+    buttons = [
+        [(2, '一键赠送药材', '一键赠送药材', False)],
+    ]
+    # 调用 markdown 函数生成数据
+    data = await markdown(params_items, buttons)
+    await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data}))
+    await send_yaocai_all.finish()
+    
+@get_double_yaocai.handle(parameterless=[Cooldown(at_sender=False)])
+async def get_double_yaocai_(bot: Bot, event: GroupMessageEvent, args: Message = CommandArg()):
+    bot, send_group_id = await assign_bot(bot=bot, event=event)
+    double_list = sql_message.get_duplicate_records()
+    print(double_list)
+
 @goods_allre_root.handle(parameterless=[Cooldown(at_sender=False)])
 async def goods_allre_root_(bot: Bot, event: GroupMessageEvent, args: Message = CommandArg()):
     """一键炼金"""
@@ -1254,8 +1402,6 @@ async def goods_allre_root_(bot: Bot, event: GroupMessageEvent, args: Message = 
         data = await markdown(params_items, buttons)
         await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
         await goods_allre_root.finish()
-
-    # 判断用户输入的命令类型，决定炼金的物品类型
     mode = args[0]  # 获取用户输入的命令
     if mode == "技能":
         goods_type_to_process = "技能"  # 只处理技能物品
@@ -1296,19 +1442,14 @@ async def goods_allre_root_(bot: Bot, event: GroupMessageEvent, args: Message = 
         goods_num = back['goods_num']
         
         item_info = items.get_data_by_item_id(goods_id)
-
-        # 如果当前物品类型符合用户选择的类型，则继续处理
         if goods_type == goods_type_to_process:
-            # 根据不同的物品类型，应用不同的排除条件
 
             if goods_type == "装备":
-                if item_info['level'] in ["无上仙器", "极品仙器", "世界之源", "音之精灵", "万魔之始", "夏之花·无尽爱", "救援之力", "神州往事", "生息之源", "轻盈之杏","新春限定","传递之薪","空想之灵","满天星·无尽夏"]:
+                if item_info['level'] in ["无上仙器", "极品仙器", "世界之源", "音之精灵", "万魔之始", "夏之花·无尽爱", "救援之力", "神州往事", "生息之源", "轻盈之杏","新春限定","心动缔结","传递之薪","空想之灵","满天星·无尽夏"]:
                     continue  # 排除这些装备
             elif goods_type == "技能":
                 if item_info['level'] in ["仙阶极品", "无上仙法", "无上神通"]:
                     continue  # 排除这些技能
-
-            # 如果物品符合条件，则添加到 valid_goods 列表
             valid_goods.append(back)
 
     if not valid_goods:
@@ -1333,7 +1474,8 @@ async def goods_allre_root_(bot: Bot, event: GroupMessageEvent, args: Message = 
         else:
             goods_num = item['goods_num']
         
-        price = int(6000000 - get_item_msg_rank(goods_id) * 100000) * goods_num
+        #price = int(9000000 - get_item_msg_rank(goods_id) * 100000) * goods_num
+        price = int((convert_rank('江湖好手')[0] + 5) * 100000 - get_item_msg_rank(goods_id) * 100000) * goods_num
         if price <= 0:
             continue  # 价格为零的物品跳过
         
@@ -1854,6 +1996,7 @@ async def view_auction_item_(bot: Bot, event: GroupMessageEvent, args: Message =
     
     # 获取拍卖品和拍卖状态
     auction_items = sql_message.get_auction_info_by_auctionid(auctionid)
+   # print(auction_items)
     goods_id = auction_items.get('auction_id')
     userid = auction_items['user_id']
     seller_id = auction_items.get('seller_id')    
@@ -2276,7 +2419,7 @@ async def use_(bot: Bot, event: GroupMessageEvent, args: Message = CommandArg())
                     buff_id = goods_info.get(buff_key)
                     goods_type = goods_info.get(type_key, "未知类型")
                     if buff_id is not None:
-                        sql_message.send_back(user_id, buff_id, goods_name, goods_type, goods_amount, 1)
+                        sql_message.send_back(user_id, buff_id, goods_name, goods_type, goods_amount, 0)
                     msg_parts.append(f'<qqbot-cmd-input text=\"查看修仙物品{goods_name}\" show=\"{goods_name}\" />{goods_amount}个') 
         sql_message.update_back_j(user_id, goods_id, num, 0)
         msg = f"道友打开了{num}个{goods_info['name']},里面居然是" + "、".join(msg_parts)
@@ -3124,7 +3267,7 @@ async def add_gongfa_gacha_(bot: Bot, event: GroupMessageEvent, args: Message = 
     msg = f"道友***{user_info['user_name']}***消耗{need_score}灵石，剩余灵石{last_score}\n累计抽取{gachanum}次获得的技能书为：{get_gachalist}"
     params_items = [('msg', msg)]               
     buttons = [
-        [(2, '抽取技能书', '抽取技能书', False)],            
+        [(2, '抽取技能书', '抽取技能书', False)],[(2, '抽取装备', '抽取装备', False)],             
     ]
    # 调用 markdown 函数生成数据
     data = await markdown(params_items, buttons)
@@ -3207,6 +3350,7 @@ async def add_zhuangbei_gacha_(bot: Bot, event: GroupMessageEvent, args: Message
                 "救援之力": 0,
                 "神州往事": 0,
                 "新春限定": 0,
+                "心动缔结": 0,
                 "世界之源": 0,
                 "音之精灵": 0
             }
@@ -3255,7 +3399,7 @@ async def add_zhuangbei_gacha_(bot: Bot, event: GroupMessageEvent, args: Message
     msg = f"道友***{user_info['user_name']}***消耗{need_score}灵石，剩余灵石{last_score}\n累计抽取{gachanum}次获得的装备为：{get_gachalist}"
     params_items = [('msg', msg)]               
     buttons = [
-        [(2, '抽取技能书', '抽取技能书', False)],            
+        [(2, '抽取装备', '抽取装备', False)],[(2, '抽取技能书', '抽取技能书', False)],              
     ]
    # 调用 markdown 函数生成数据
     data = await markdown(params_items, buttons)

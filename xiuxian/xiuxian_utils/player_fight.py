@@ -709,7 +709,32 @@ async def Boss_fight(player1: dict, boss: dict, type_in=2, bot_id=0):
     global boss_jb 
     global boss_xl
 
-    if boss["jj"] == "祭道境":
+    if boss["jj"] in ["净涅境","空涅境","碎涅境"]:
+            #boss["减伤"] = random.randint(40,90)/100 # boss减伤率
+            boss["减伤"] = 0.01 # boss减伤率
+            boss_st1 = random.randint(0,100) #boss神通1
+            if 0 <= boss_st1 <= 25:
+                boss_zs = 2   #boss攻击
+                boss_hx = 0
+                boss_bs = 0
+                boss_xx = 0
+            elif 26 <= boss_st1 <= 50:
+                boss_zs = 0
+                boss_hx = 1.4   #boss会心
+                boss_bs = 0
+                boss_xx = 0
+            elif 51 <= boss_st1 <= 75:
+                boss_zs = 0
+                boss_hx = 0
+                boss_bs = 4   #boss暴伤
+                boss_xx = 0
+            elif 75 <= boss_st1 <= 100:
+                boss_zs = 0
+                boss_hx = 0
+                boss_bs = 0
+                boss_xx = 2  #boss禁血
+
+    if boss["jj"] in ["祭道境","造化境","窥涅境"]:
             #boss["减伤"] = random.randint(40,90)/100 # boss减伤率
             boss["减伤"] = 0.05 # boss减伤率
             boss_st1 = random.randint(0,100) #boss神通1
@@ -756,7 +781,7 @@ async def Boss_fight(player1: dict, boss: dict, type_in=2, bot_id=0):
                 boss_jb = 0
                 boss_xl = 1  #boss禁蓝
     
-    if convert_rank('遁一境初期')[0] < convert_rank((boss["jj"] + '中期'))[0] < convert_rank('江湖好手')[0]: #遁一以下
+    if convert_rank('遁一境初期')[0] < (convert_rank((boss["jj"] + '中期'))[0] or convert_rank((boss['jj']))[0]) < convert_rank('江湖好手')[0]: #遁一以下
             boss["减伤"] = 1 # boss减伤率
             boss_zs = 0
             boss_hx = 0
@@ -766,7 +791,7 @@ async def Boss_fight(player1: dict, boss: dict, type_in=2, bot_id=0):
             boss_jh = 0
             boss_jb = 0
             boss_xl = 0
-    if  convert_rank('至尊境初期')[0] < convert_rank((boss["jj"] + '中期'))[0] < convert_rank('斩我境圆满')[0]: #遁一境
+    if  convert_rank('至尊境初期')[0] < (convert_rank((boss["jj"] + '中期'))[0] or convert_rank((boss['jj']))[0]) < convert_rank('斩我境圆满')[0]: #遁一境
             boss["减伤"] = random.randint(50,55) / 100 # boss减伤率
             boss_st1 = random.randint(0,100) #boss神通1
             if 0 <= boss_st1 <= 25:
@@ -812,7 +837,7 @@ async def Boss_fight(player1: dict, boss: dict, type_in=2, bot_id=0):
                 boss_jb = 0
                 boss_xl = random.randint(5,100) / 100  #boss禁血
                 
-    if convert_rank('真仙境初期')[0] < convert_rank((boss["jj"] + '中期'))[0] < convert_rank('遁一境圆满')[0]: #至尊境
+    if convert_rank('真仙境初期')[0] < (convert_rank((boss["jj"] + '中期'))[0] or convert_rank((boss['jj']))[0]) < convert_rank('遁一境圆满')[0]: #至尊境
             boss["减伤"] = random.randint(40,45) / 100 # boss减伤率
             boss_st1 = random.randint(0,100) #boss神通1
             if 0 <= boss_st1 <= 25:
@@ -858,7 +883,7 @@ async def Boss_fight(player1: dict, boss: dict, type_in=2, bot_id=0):
                 boss_jb = 0
                 boss_xl = random.randint(10,100) / 100  #boss禁血
             
-    if convert_rank('仙王境初期')[0] < convert_rank((boss["jj"] + '中期'))[0] < convert_rank('至尊境圆满')[0]: #真仙境
+    if convert_rank('仙王境初期')[0] < (convert_rank((boss["jj"] + '中期'))[0] or convert_rank((boss['jj']))[0]) < convert_rank('至尊境圆满')[0]: #真仙境
             boss["减伤"] = random.randint(30,35) / 100 # boss减伤率
             boss_st1 = random.randint(0,100) #boss神通1
             if 0 <= boss_st1 <= 25:
@@ -904,7 +929,7 @@ async def Boss_fight(player1: dict, boss: dict, type_in=2, bot_id=0):
                 boss_jb = 0
                 boss_xl = random.randint(30,100) / 100  #boss禁血
             
-    if convert_rank('准帝境初期')[0] < convert_rank((boss["jj"] + '中期'))[0] < convert_rank('真仙境圆满')[0]: #仙王境 
+    if convert_rank('准帝境初期')[0] < (convert_rank((boss["jj"] + '中期'))[0] or convert_rank((boss['jj']))[0]) < convert_rank('真仙境圆满')[0]: #仙王境 
             boss["减伤"] = random.randint(20,25) / 100  # boss减伤率
             boss_st1 = random.randint(0,100) #boss神通1
             if 0 <= boss_st1 <= 25:
@@ -950,7 +975,7 @@ async def Boss_fight(player1: dict, boss: dict, type_in=2, bot_id=0):
                 boss_jb = 0
                 boss_xl = random.randint(40,100) / 100  #boss禁血
             
-    if convert_rank('仙帝境初期')[0] < convert_rank((boss["jj"]+ '中期'))[0] < convert_rank('仙王境圆满')[0]: #准帝境
+    if convert_rank('仙帝境初期')[0] < (convert_rank((boss["jj"] + '中期'))[0] or convert_rank((boss['jj']))[0]) < convert_rank('仙王境圆满')[0]: #准帝境
             boss["减伤"] = random.randint(10,15) / 100  # boss减伤率
             boss_st1 = random.randint(0,100) #boss神通1
             if 0 <= boss_st1 <= 25:
@@ -996,7 +1021,7 @@ async def Boss_fight(player1: dict, boss: dict, type_in=2, bot_id=0):
                 boss_jb = 0
                 boss_xl = random.randint(50,100) / 100  #boss禁血
       
-    if convert_rank('祭道境初期')[0] < convert_rank((boss["jj"]+ '中期'))[0] < convert_rank('准帝境圆满')[0]: #仙帝境
+    if convert_rank('祭道境初期')[0] < (convert_rank((boss["jj"] + '中期'))[0] or convert_rank((boss['jj']))[0]) < convert_rank('准帝境圆满')[0]: #仙帝境
             boss["减伤"] = 0.1  # boss减伤率
             boss_st1 = random.randint(0,100) #boss神通1
             if 0 <= boss_st1 <= 25:
@@ -1041,8 +1066,276 @@ async def Boss_fight(player1: dict, boss: dict, type_in=2, bot_id=0):
                 boss_jh = 0
                 boss_jb = 0
                 boss_xl = random.randint(60,100) / 100  #boss禁血
-            
-            
+    if convert_rank('窥涅境初期')[0] < (convert_rank((boss["jj"] + '中期'))[0] or convert_rank((boss['jj']))[0]) < convert_rank('祭道境圆满')[0]: #仙帝境
+            boss["减伤"] = 0.01  # boss减伤率
+            boss_st1 = random.randint(0,100) #boss神通1
+            if 0 <= boss_st1 <= 25:
+                boss_zs = 0.9   #boss攻击
+                boss_hx = 0
+                boss_bs = 0
+                boss_xx = 0
+            elif 26 <= boss_st1 <= 50:
+                boss_zs = 0
+                boss_hx = 0.6   #boss会心
+                boss_bs = 0
+                boss_xx = 0
+            elif 51 <= boss_st1 <= 75:
+                boss_zs = 0
+                boss_hx = 0
+                boss_bs = 1.7   #boss暴伤
+                boss_xx = 0
+            elif 75 <= boss_st1 <= 100:
+                boss_zs = 0
+                boss_hx = 0
+                boss_bs = 0
+                boss_xx = random.randint(60,100) / 100  #boss禁血
+                
+            boss_st2 = random.randint(0,100) #boss神通2
+            if 0 <= boss_st2 <= 25:
+                boss_jg = 0.62   #boss降攻
+                boss_jh = 0
+                boss_jb = 0
+                boss_xl = 0
+            elif 26 <= boss_st2 <= 50:
+                boss_jg = 0
+                boss_jh = 0.67   #boss降会
+                boss_jb = 0
+                boss_xl = 0
+            elif 51 <= boss_st2 <= 75:
+                boss_jg = 0
+                boss_jh = 0
+                boss_jb = 1.2   #boss降暴
+                boss_xl = 0
+            elif 76 <= boss_st2 <= 100:
+                boss_jg = 0
+                boss_jh = 0
+                boss_jb = 0
+                boss_xl = random.randint(60,100) / 100  #boss禁血            
+    if convert_rank('空涅境初期')[0] < (convert_rank((boss["jj"] + '中期'))[0] or convert_rank((boss['jj']))[0]) < convert_rank('窥涅境圆满')[0]: #仙帝境
+            boss["减伤"] = 0.001  # boss减伤率
+            boss_st1 = random.randint(0,100) #boss神通1
+            if 0 <= boss_st1 <= 25:
+                boss_zs = 0.9   #boss攻击
+                boss_hx = 0
+                boss_bs = 0
+                boss_xx = 0
+            elif 26 <= boss_st1 <= 50:
+                boss_zs = 0
+                boss_hx = 0.6   #boss会心
+                boss_bs = 0
+                boss_xx = 0
+            elif 51 <= boss_st1 <= 75:
+                boss_zs = 0
+                boss_hx = 0
+                boss_bs = 1.7   #boss暴伤
+                boss_xx = 0
+            elif 75 <= boss_st1 <= 100:
+                boss_zs = 0
+                boss_hx = 0
+                boss_bs = 0
+                boss_xx = random.randint(60,100) / 100  #boss禁血
+                
+            boss_st2 = random.randint(0,100) #boss神通2
+            if 0 <= boss_st2 <= 25:
+                boss_jg = 0.62   #boss降攻
+                boss_jh = 0
+                boss_jb = 0
+                boss_xl = 0
+            elif 26 <= boss_st2 <= 50:
+                boss_jg = 0
+                boss_jh = 0.67   #boss降会
+                boss_jb = 0
+                boss_xl = 0
+            elif 51 <= boss_st2 <= 75:
+                boss_jg = 0
+                boss_jh = 0
+                boss_jb = 1.2   #boss降暴
+                boss_xl = 0
+            elif 76 <= boss_st2 <= 100:
+                boss_jg = 0
+                boss_jh = 0
+                boss_jb = 0
+                boss_xl = random.randint(60,100) / 100  #boss禁血
+    if convert_rank('空灵境初期')[0] < (convert_rank((boss["jj"] + '中期'))[0] or convert_rank((boss['jj']))[0]) < convert_rank('空涅境圆满')[0]: #仙帝境
+            boss["减伤"] = 0.0001  # boss减伤率
+            boss_st1 = random.randint(0,100) #boss神通1
+            if 0 <= boss_st1 <= 25:
+                boss_zs = 0.9   #boss攻击
+                boss_hx = 0
+                boss_bs = 0
+                boss_xx = 0
+            elif 26 <= boss_st1 <= 50:
+                boss_zs = 0
+                boss_hx = 0.6   #boss会心
+                boss_bs = 0
+                boss_xx = 0
+            elif 51 <= boss_st1 <= 75:
+                boss_zs = 0
+                boss_hx = 0
+                boss_bs = 1.7   #boss暴伤
+                boss_xx = 0
+            elif 75 <= boss_st1 <= 100:
+                boss_zs = 0
+                boss_hx = 0
+                boss_bs = 0
+                boss_xx = random.randint(60,100) / 100  #boss禁血
+                
+            boss_st2 = random.randint(0,100) #boss神通2
+            if 0 <= boss_st2 <= 25:
+                boss_jg = 0.62   #boss降攻
+                boss_jh = 0
+                boss_jb = 0
+                boss_xl = 0
+            elif 26 <= boss_st2 <= 50:
+                boss_jg = 0
+                boss_jh = 0.67   #boss降会
+                boss_jb = 0
+                boss_xl = 0
+            elif 51 <= boss_st2 <= 75:
+                boss_jg = 0
+                boss_jh = 0
+                boss_jb = 1.2   #boss降暴
+                boss_xl = 0
+            elif 76 <= boss_st2 <= 100:
+                boss_jg = 0
+                boss_jh = 0
+                boss_jb = 0
+                boss_xl = random.randint(60,100) / 100  #boss禁血   
+    if convert_rank('空灵境初期')[0] < (convert_rank((boss["jj"] + '中期'))[0] or convert_rank((boss['jj']))[0]) < convert_rank('空涅境圆满')[0]: #仙帝境
+            boss["减伤"] = 0.0001  # boss减伤率
+            boss_st1 = random.randint(0,100) #boss神通1
+            if 0 <= boss_st1 <= 25:
+                boss_zs = 0.9   #boss攻击
+                boss_hx = 0
+                boss_bs = 0
+                boss_xx = 0
+            elif 26 <= boss_st1 <= 50:
+                boss_zs = 0
+                boss_hx = 0.6   #boss会心
+                boss_bs = 0
+                boss_xx = 0
+            elif 51 <= boss_st1 <= 75:
+                boss_zs = 0
+                boss_hx = 0
+                boss_bs = 1.7   #boss暴伤
+                boss_xx = 0
+            elif 75 <= boss_st1 <= 100:
+                boss_zs = 0
+                boss_hx = 0
+                boss_bs = 0
+                boss_xx = random.randint(60,100) / 100  #boss禁血
+                
+            boss_st2 = random.randint(0,100) #boss神通2
+            if 0 <= boss_st2 <= 25:
+                boss_jg = 0.62   #boss降攻
+                boss_jh = 0
+                boss_jb = 0
+                boss_xl = 0
+            elif 26 <= boss_st2 <= 60:
+                boss_jg = 0
+                boss_jh = 0.67   #boss降会
+                boss_jb = 0
+                boss_xl = 0
+            elif 51 <= boss_st2 <= 75:
+                boss_jg = 0
+                boss_jh = 0
+                boss_jb = 1.2   #boss降暴
+                boss_xl = 0
+            elif 76 <= boss_st2 <= 100:
+                boss_jg = 0
+                boss_jh = 0
+                boss_jb = 0
+                boss_xl = random.randint(70,100) / 100  #boss禁血 
+    if convert_rank('空劫境初期')[0] < (convert_rank((boss["jj"] + '中期'))[0] or convert_rank((boss['jj']))[0]) < convert_rank('空灵境圆满')[0]: #仙帝境
+            boss["减伤"] = 0.00001  # boss减伤率
+            boss_st1 = random.randint(0,100) #boss神通1
+            if 0 <= boss_st1 <= 25:
+                boss_zs = 0.9   #boss攻击
+                boss_hx = 0
+                boss_bs = 0
+                boss_xx = 0
+            elif 26 <= boss_st1 <= 50:
+                boss_zs = 0
+                boss_hx = 0.6   #boss会心
+                boss_bs = 0
+                boss_xx = 0
+            elif 51 <= boss_st1 <= 75:
+                boss_zs = 0
+                boss_hx = 0
+                boss_bs = 1.7   #boss暴伤
+                boss_xx = 0
+            elif 75 <= boss_st1 <= 100:
+                boss_zs = 0
+                boss_hx = 0
+                boss_bs = 0
+                boss_xx = random.randint(60,100) / 100  #boss禁血
+                
+            boss_st2 = random.randint(0,100) #boss神通2
+            if 0 <= boss_st2 <= 25:
+                boss_jg = 0.62   #boss降攻
+                boss_jh = 0
+                boss_jb = 0
+                boss_xl = 0
+            elif 26 <= boss_st2 <= 50:
+                boss_jg = 0
+                boss_jh = 0.67   #boss降会
+                boss_jb = 0
+                boss_xl = 0
+            elif 51 <= boss_st2 <= 75:
+                boss_jg = 0
+                boss_jh = 0
+                boss_jb = 1.2   #boss降暴
+                boss_xl = 0
+            elif 76 <= boss_st2 <= 100:
+                boss_jg = 0
+                boss_jh = 0
+                boss_jb = 0
+                boss_xl = random.randint(60,100) / 100  #boss禁血   
+    if convert_rank('无上境圆满')[0] < (convert_rank((boss["jj"] + '中期'))[0] or convert_rank((boss['jj']))[0]) < convert_rank('空劫境圆满')[0]: #仙帝境
+            boss["减伤"] = 0.000001  # boss减伤率
+            boss_st1 = random.randint(0,100) #boss神通1
+            if 0 <= boss_st1 <= 25:
+                boss_zs = 0.9   #boss攻击
+                boss_hx = 0
+                boss_bs = 0
+                boss_xx = 0
+            elif 26 <= boss_st1 <= 50:
+                boss_zs = 0
+                boss_hx = 0.6   #boss会心
+                boss_bs = 0
+                boss_xx = 0
+            elif 51 <= boss_st1 <= 75:
+                boss_zs = 0
+                boss_hx = 0
+                boss_bs = 1.7   #boss暴伤
+                boss_xx = 0
+            elif 75 <= boss_st1 <= 100:
+                boss_zs = 0
+                boss_hx = 0
+                boss_bs = 0
+                boss_xx = random.randint(60,100) / 100  #boss禁血
+                
+            boss_st2 = random.randint(0,100) #boss神通2
+            if 0 <= boss_st2 <= 25:
+                boss_jg = 0.62   #boss降攻
+                boss_jh = 0
+                boss_jb = 0
+                boss_xl = 0
+            elif 26 <= boss_st2 <= 50:
+                boss_jg = 0
+                boss_jh = 0.67   #boss降会
+                boss_jb = 0
+                boss_xl = 0
+            elif 51 <= boss_st2 <= 75:
+                boss_jg = 0
+                boss_jh = 0
+                boss_jb = 1.2   #boss降暴
+                boss_xl = 0
+            elif 76 <= boss_st2 <= 100:
+                boss_jg = 0
+                boss_jh = 0
+                boss_jb = 0
+                boss_xl = random.randint(60,100) / 100  #boss禁血                     
     if fan_buff == 1:
         boss_jg = 0
         boss_jh = 0

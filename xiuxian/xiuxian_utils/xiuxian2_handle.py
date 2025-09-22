@@ -999,7 +999,9 @@ WHERE last_check_info_time = '0' OR last_check_info_time IS NULL
 
             new_sign_count = result[1] + 1  # 增加签到次数
             spls = 66666666  # 特别奖励的灵石数目
-
+        #    propname = "劳动节礼包"
+        #    sql_message.send_back(user_id, 15053, propname, "礼包", 1, 0)
+            
             # 如果累计签到超过100次，给予特别奖励
             if new_sign_count == 100:
                 sql2 = "UPDATE user_xiuxian SET is_sign=1, stone=stone+?, sign_count=sign_count+1 WHERE user_id=?"
@@ -2210,6 +2212,40 @@ WHERE last_check_info_time = '0' OR last_check_info_time IS NULL
             results.append(back_dict)
         return results
 
+    def update_back_table_user_id(self, old_user_id, new_user_id):
+        """
+        将特定old_user_id的back表中所有goods_type为药材的物品记录的user_id修改为新的new_user_id
+        """
+        sql = """
+            UPDATE back
+            SET user_id =?
+            WHERE user_id =? AND goods_type = '药材' AND bind_num = 0
+        """
+        cur = self.conn.cursor()
+        cur.execute(sql, (new_user_id, old_user_id))
+        self.conn.commit()
+        
+
+    def get_all_yaocai_by_user(self, user_id):
+        """
+        获取特定user_id的所有药材
+        """
+        sql = """
+            SELECT * FROM back
+            WHERE user_id =? AND goods_type = '药材' AND bind_num = 0
+        """
+        cur = self.conn.cursor()
+        cur.execute(sql, (user_id,))
+        results = cur.fetchall()
+
+        columns = [column[0] for column in cur.description]
+        herbs = []
+        for row in results:
+            herb_dict = dict(zip(columns, row))
+            herbs.append(herb_dict)
+
+        return herbs
+
 
     def goods_num(self, user_id, goods_id):
         """
@@ -2748,13 +2784,16 @@ class OtherSet(XiuConfig):
         if user_msg['root_type'] == '轮回道果':
             max_hp = int(user_msg['exp'] * 0.65)
             max_mp = int(user_msg['exp'] * 1.2)
+            max_atk = int(user_msg['exp'] * 0.12)
         elif user_msg['root_type'] == '真·轮回道果':
             max_hp = int(user_msg['exp'] * 0.85)
             max_mp = int(user_msg['exp'] * 1.5)
+            max_atk = int(user_msg['exp'] * 0.15)
 
         else:        
             max_hp = int(user_msg['exp'] / 2)
             max_mp = int(user_msg['exp'])
+            max_atk = int(user_msg['exp'] * 0.1)
 
         msg = []
         hp_mp = []
@@ -2783,7 +2822,7 @@ class OtherSet(XiuConfig):
 
         hp_mp.append(new_hp)
         hp_mp.append(new_mp)
-        hp_mp.append(user_msg['exp'])
+        hp_mp.append(max_atk)
 
         return msg, hp_mp
 

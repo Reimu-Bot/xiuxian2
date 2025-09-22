@@ -164,6 +164,12 @@ class Items:
         :return 获得的ID列表,type:list
         """
         l_id = []
+        if fanil_rank < 15:
+            for k, v in self.items.items():
+                if int(v.get('rank', 0)) == 55:
+                    if item_type is None or v['item_type'] in item_type:
+                        l_id.append(k)
+            return l_id
         for k, v in self.items.items():
             if item_type is not None:
                 if v['item_type'] in item_type and int(v['rank']) >= fanil_rank and int(v['rank']) - fanil_rank <= 40:

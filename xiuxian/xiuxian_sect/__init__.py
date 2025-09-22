@@ -17,6 +17,7 @@ from nonebot.adapters.onebot.v11 import (
     ActionFailed
 )
 from ..xiuxian_utils.lay_out import assign_bot, Cooldown, assign_bot_group
+from nonebot.permission import SUPERUSER
 from nonebot.params import CommandArg
 from ..xiuxian_utils.data_source import jsondata
 from datetime import datetime, timedelta
@@ -54,6 +55,7 @@ resetusertask = require("nonebot_plugin_apscheduler").scheduler
 auto_sect_owner_change = require("nonebot_plugin_apscheduler").scheduler
 upatkpractice = on_command("升级攻击修炼", priority=5, permission=GROUP, block=True)
 my_sect = on_command("我的宗门", aliases={"宗门信息"}, priority=5, permission=GROUP, block=True)
+gm_change_owner = on_command("xf更新宗主", permission=SUPERUSER, priority=10, block=True)
 add_sect_memo = on_command("宗训修改", aliases={"修改宗训"}, priority=5, permission=GROUP, block=True)
 create_sect = on_command("创建宗门", priority=5, permission=GROUP, block=True)
 join_sect = on_command("加入宗门", priority=5, permission=GROUP, block=True)
@@ -123,9 +125,10 @@ async def materialsupdate_():
     logger.opt(colors=True).info(f"<green>已更新所有宗门的资材</green>")
 
 
-# 每日0点重置用户宗门任务次数、宗门丹药领取次数
-@resetusertask.scheduled_job("cron", hour=23, minute=57)
+# 每日0点重置用户宗门任务次数、宗门丹药领取次数 修仙签到
+@resetusertask.scheduled_job("cron", hour=0, minute=2)
 async def resetusertask_():
+    sql_message.sign_remake()
     sql_message.sect_task_reset()
     sql_message.sect_elixir_get_num_reset()
     all_sects = sql_message.get_all_sects_id_scale()
@@ -139,37 +142,27 @@ async def resetusertask_():
                 continue
             else:
                 sql_message.update_sect_materials(sect_id=sect_info['sect_id'], sect_materials=elixir_room_cost, key=2)
-    logger.opt(colors=True).info(f"<green>已重置所有宗门任务次数、宗门丹药领取次数，已扣除丹房维护费</green>")
+    print(f"<green>已重置所有宗门任务次数、宗门丹药领取次数，已扣除丹房维护费</green>")
 
-# 定时任务每1小时自动检测不常玩的宗主
-@auto_sect_owner_change.scheduled_job("interval", hours=12)
-async def auto_sect_owner_change_():
-    logger.opt(colors=True).info(f"<yellow>开始检测不常玩的宗主</yellow>")
+@gm_change_owner.handle(parameterless=[Cooldown(at_sender=False)])
+async def gm_change_owner_(bot: Bot, event: GroupMessageEvent, args: Message = CommandArg()):
+    bot, send_group_id = await assign_bot(bot=bot, event=event)
+    msg_text = args.extract_plain_text().strip()
+    msg_parts = msg_text.split()
+
+    sect_id = msg_parts[1]
+    new_name = msg_parts[0]
+    sect_info = sql_message.get_sect_info(sect_id)
+    owner_id = sect_info['sect_owner']
+    new_owner_info = sql_message.get_user_info_with_name(new_name)
+    new_owner_id = new_owner_info['user_id']
     
-    all_sect_owners_id = sql_message.get_sect_owners()
-    all_active = all(sql_message.get_last_check_info_time(owner_id) is None or
-                     datetime.now() - sql_message.get_last_check_info_time(owner_id) < timedelta(days=XiuConfig().auto_change_sect_owner_cd)
-                     for owner_id in all_sect_owners_id)
-    if all_active:
-        logger.opt(colors=True).info(f"<green>各宗宗主在修行之途上勤勉不辍，宗门安危无忧，可喜可贺！</green>")
-
-    for owner_id in all_sect_owners_id:
-        last_check_time = sql_message.get_last_check_info_time(owner_id)
-        if last_check_time is None or datetime.now() - last_check_time < timedelta(days=XiuConfig().auto_change_sect_owner_cd):
-            continue
-
-        user_info = sql_message.get_user_info_with_id(owner_id)
-        sect_id = user_info['sect_id']
-        logger.opt(colors=True).info(f"<red>{user_info['user_name']}离线时间超过{XiuConfig().auto_change_sect_owner_cd}天，开始自动换宗主</red>")
-        new_owner_id = sql_message.get_highest_contrib_user_except_current(sect_id, owner_id)
-        new_owner_info = sql_message.get_user_info_with_id(new_owner_id[0])
-        
-        sql_message.update_usr_sect(owner_id, sect_id, 1)
-        sql_message.update_usr_sect(new_owner_id[0], sect_id, 0)
-        sql_message.update_sect_owner(new_owner_id[0], sect_id)
-        sect_info = sql_message.get_sect_info_by_id(sect_id)
-        logger.opt(colors=True).info(f"<green>由{new_owner_info['user_name']}继承{sect_info['sect_name']}宗主之位</green>")
-
+    sql_message.update_usr_sect(owner_id, sect_id, 1)
+    sql_message.update_usr_sect(new_owner_id, sect_id, 0)
+    sql_message.update_sect_owner(new_owner_id, sect_id)
+    sect_info = sql_message.get_sect_info_by_id(sect_id)
+    msg = f"由{new_owner_info['user_name']}继承{sect_info['sect_name']}宗主之位"
+    await bot.send_group_msg(group_id=send_group_id, message=msg)        
     
 @sect_helps.handle(parameterless=[Cooldown(at_sender=False)])
 async def sect_help_(bot: Bot, event: GroupMessageEvent, session_id: int = CommandObjectID()):
@@ -234,7 +227,7 @@ async def sect_elixir_room_make_(bot: Bot, event: GroupMessageEvent):
             elixir_room_level_up_config = elixir_room_config['elixir_room_level']
             sect_info = sql_message.get_sect_info(sect_id)
             elixir_room_level = sect_info['elixir_room_level']  # 宗门丹房等级
-            if int(elixir_room_level) == len(elixir_room_level_up_config):
+            if int(elixir_room_level) + 1 == len(elixir_room_level_up_config):
                 msg = f"宗门丹房等级已经达到最高等级，无法继续建设了！"
                 params_items = [('msg', msg)]
                 buttons = [

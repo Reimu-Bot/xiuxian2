@@ -29,13 +29,6 @@ lscost = 1000000000 # 刷新灵石消耗
 count = 3  # 免费次数
 
 
-# 重置悬赏令刷新次数
-@resetrefreshnum.scheduled_job("cron", hour=22, minute=59)
-async def resetrefreshnum_():
-    sql_message.reset_work_num()
-    logger.opt(colors=True).info(f"<green>用户悬赏令刷新次数重置成功</green>")
-
-
 last_work = on_command("xfffg最后的悬赏令", priority=15, block=True)
 do_work = on_regex(
     r"^悬赏令(刷新|终止|结算|接取|帮助)?(\d+)?",
@@ -418,6 +411,16 @@ async def do_work_(bot: Bot, event: GroupMessageEvent, args: Tuple[Any, ...] = R
                 key=1, name=user_cd_message['scheduled_time'], level=user_level, exp=user_info['exp'],
                 user_id=user_info['user_id']
             )
+            if time2 is None:
+                msg = "悬赏令丢失，请发送 悬赏令终止 结束"
+                params_items = [('msg', msg)]
+                buttons = [
+                    [(2, '悬赏令', '悬赏令', True), (2, '悬赏令终止', '悬赏令终止', True)],
+                ]
+                # 调用 markdown 函数生成数据
+                data = await markdown(params_items, buttons)
+                await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data}))
+                await do_work.finish()            
             if user_vip_days > 0:
                 time2 = time2 // 2  # 减少一倍时间
             else:

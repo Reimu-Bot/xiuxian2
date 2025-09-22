@@ -143,7 +143,7 @@ async def save_boss_():
     old_boss_info.save_boss(group_boss)
     logger.opt(colors=True).info(f"<green>boss数据已保存</green>")
 
-@scheduler.scheduled_job("cron", hour=13, minute=59)  # 每天上午9点执行
+@scheduler.scheduled_job("cron", hour=14, minute=1)  # 每天上午9点执行
 async def generate_daily_bosses():
     """定时生成世界Boss"""
     group_id = 'worldboss'
@@ -159,7 +159,7 @@ async def generate_daily_bosses():
 
     logger.opt(colors=True).info(f"<green>已刷新妖界boss</green>")
 
-@scheduler.scheduled_job("cron", hour="*/3", minute=59)  # 每3个小时刷新
+@scheduler.scheduled_job("cron", hour="*/3", minute=58)  # 每3个小时刷新
 async def generate_world_bosses():
     """定时生成世界 Boss，每个境界生成一个"""
     group_id = 'bigboss'
@@ -331,7 +331,7 @@ async def pokemon_pk_dungeon_(bot: Bot, event: GroupMessageEvent):
 
     dungeon_str = str(my_dungeon_num + 1)
     bossinfo = dungeonlist[dungeon_str]['bossinfo']
-    print(bossinfo)
+  #  print(bossinfo)
     name_list = list(bossinfo['name'])  # 将集合转换为列表
     selected_name = random.choice(name_list)  # 随机选择一个名字
     bossinfo['name'] = selected_name     
@@ -357,7 +357,7 @@ async def pokemon_pk_dungeon_(bot: Bot, event: GroupMessageEvent):
        # sql_message.update_boss_score(user_id, boss_integral, 1)
         sql_message.update_dungeon(user_id, my_dungeon_num, 1)            
         msg_content = '\n'.join([node['data']['content'] for node in result if 'content' in node['data']])
-        msg += f"```\n{msg_content}\n```"
+        msg += f"\n```python{msg_content}```\n"
         params_items = [('msg', msg)] 
         buttons = []
        # 调用 markdown 函数生成数据
@@ -386,7 +386,7 @@ async def pokemon_pk_dungeon_(bot: Bot, event: GroupMessageEvent):
         sql_message.update_boss_score(user_id, boss_integral, 1)
         sql_message.update_dungeon(user_id, int(dungeon_str), 1)
         msg_content = '\n'.join([node['data']['content'] for node in result if 'content' in node['data']])
-        msg = f"```\n{msg_content}\n```"
+        msg = f"\n```python{msg_content}```\n"
         params_items = [('msg', msg)] 
         buttons = []
        # 调用 markdown 函数生成数据
@@ -636,6 +636,16 @@ async def boss_battle_(bot: Bot, event: GroupMessageEvent):
         '准帝境': int(sacred_score * 1.25**8),
         '仙帝境': int(sacred_score * 1.25**9),
         '祭道境': int(sacred_score * 1.25**10),
+        '造化境': int(sacred_score * 1.25**11),
+        '窥涅境': int(sacred_score * 1.25**12), 
+        '净涅境': int(sacred_score * 1.25**13),
+        '空涅境': int(sacred_score * 1.25**14),
+        '碎涅境': int(sacred_score * 1.25**15),
+        '空灵境': int(sacred_score * 1.25**16),
+        '空玄境': int(sacred_score * 1.25**17),
+        '空劫境': int(sacred_score * 1.25**18),
+        '踏天境': int(sacred_score * 1.25**19),
+        '无上境': int(sacred_score * 1.25**20),         
     }
 
     base_score = realm_scores.get(user_level, sacred_score)         
@@ -670,7 +680,7 @@ async def boss_battle_(bot: Bot, event: GroupMessageEvent):
             
         battle_flag[group_id] = False
         msg_content = '\n'.join([node['data']['content'] for node in result if 'content' in node['data']])
-        msg = f"```\n{msg_content}\n```"
+        msg = f"\n```python{msg_content}```\n"
         msg += f"道友不敌{bossinfo['name']}，重伤逃遁，临逃前收获灵石{get_stone}枚，{more_msg}获得妖界灵气：{boss_integral}点{exp_msg} "
         if user_info['root'] == "器师" and boss_integral < 0:
             msg += f"\n如果出现负灵气，说明你境界太高了，玩器师就不要那么高境界了！！！"        
@@ -718,7 +728,7 @@ async def boss_battle_(bot: Bot, event: GroupMessageEvent):
         sql_message.update_ls(user_id, get_stone, 1)
         sql_message.update_boss_score(user_id, boss_integral, 1)
         msg_content = '\n'.join([node['data']['content'] for node in result if 'content' in node['data']])
-        msg = f"```\n{msg_content}\n```"
+        msg = f"\n```python{msg_content}```\n"
         msg += f"恭喜道友击败{bossinfo['name']}，收获灵石{get_stone}枚，{more_msg}获得妖界灵气：{boss_integral}点!{exp_msg} {drops_msg}"
         if user_info['root'] == "器师" and boss_integral < 0:
            msg += f"\n如果出现负灵气，说明你这器师境界太高了(如果总妖界灵气为负数，会帮你重置成0)，玩器师就不要那么高境界了！！！"        
@@ -867,12 +877,12 @@ async def battle_(bot: Bot, event: GroupMessageEvent, args: Message = CommandArg
     player['exp'] = userinfo['exp']
 
     bossinfo = group_boss[group_id][boss_num - 1]
-    if bossinfo['jj'] == '零':
+    if bossinfo['jj'] == '零' or bossinfo['jj'] == '天道' or bossinfo['jj'] == '至高':
         boss_rank = convert_rank((bossinfo['jj']))[0]
     else:
         boss_rank = convert_rank((bossinfo['jj'] + '中期'))[0]
     user_rank = convert_rank(userinfo['level'])[0]
-    if boss_rank - user_rank >= 9:
+    if int(boss_rank) - int(user_rank) >= 9:
         msg = f"道友已是{userinfo['level']}之人，妄图抢小辈的Boss，可耻！"
         sql_message.update_user_stamina(user_id, 20, 1)
         params_items = [('msg', msg)]               
@@ -930,7 +940,7 @@ async def battle_(bot: Bot, event: GroupMessageEvent, args: Message = CommandArg
             
         battle_flag[group_id] = False
         msg_content = '\n'.join([node['data']['content'] for node in result if 'content' in node['data']])
-        msg = f"```\n{msg_content}\n```"
+        msg = f"\n```python{msg_content}```\n"
         msg += f"道友不敌{bossinfo['name']}，重伤逃遁，临逃前收获灵石{get_stone}枚，{more_msg}获得妖界灵气：{boss_integral}点{exp_msg} "
         if user_info['root'] == "器师" and boss_integral < 0:
             msg += f"\n如果出现负灵气，说明你境界太高了，玩器师就不要那么高境界了！！！"        
@@ -985,7 +995,7 @@ async def battle_(bot: Bot, event: GroupMessageEvent, args: Message = CommandArg
       #  save_user_boss_fight_info(user_id, user_boss_fight_info)
         sql_message.update_boss_score(user_id, boss_integral, 1)
         msg_content = '\n'.join([node['data']['content'] for node in result if 'content' in node['data']])
-        msg = f"```\n{msg_content}\n```"
+        msg = f"\n```python{msg_content}```\n"
         msg += f"恭喜道友击败{bossinfo['name']}，收获灵石{get_stone}枚，{more_msg}获得妖界灵气：{boss_integral}点!{exp_msg} {drops_msg}"
         if user_info['root'] == "器师" and boss_integral < 0:
            msg += f"\n如果出现负灵气，说明你这器师境界太高了(如果总妖界灵气为负数，会帮你重置成0)，玩器师就不要那么高境界了！！！"        

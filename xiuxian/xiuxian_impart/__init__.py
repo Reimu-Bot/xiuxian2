@@ -571,7 +571,7 @@ async def get_drawgift_(bot: Bot, event: GroupMessageEvent):
         await get_drawgift.finish()    
     current_timestamp = time.time()
     # 设置截止时间（2024年10月7日的时间戳）
-    end_timestamp = time.mktime(time.strptime("2025-2-6", "%Y-%m-%d"))
+    end_timestamp = time.mktime(time.strptime("2025-5-5", "%Y-%m-%d"))
 
     if current_timestamp > end_timestamp:   
         msg = "礼包领取已结束，祝您快乐！"
@@ -585,16 +585,16 @@ async def get_drawgift_(bot: Bot, event: GroupMessageEvent):
         await get_drawgift.finish()    
     impart_data_draw = await impart_check(user_id)    
     scorenum = 50
-    propname = "2025乙巳蛇年新春礼包"
+    propname = "劳动节礼包"
     propnum = 1 
     gift_info = sql_message.get_gift_info(user_info['user_id'])  
     
     if gift_info == 0:
        # sql_message.update_ls(user_info['user_id'], scorenum, 1)  # 发放300万灵石
-        sql_message.send_back(user_id, 15051, propname, "礼包", propnum, 1)  # 发放物品
+        sql_message.send_back(user_id, 15053, propname, "礼包", propnum, 1)  # 发放物品
         xiuxian_impart.update_stone_num(scorenum, user_id, 1)
         sql_message.update_gift(user_info['user_id'], 1)  # 更新领取状态
-        msg = f'2025新年快乐！\n🎄🎄您获得了传承抽卡次数{scorenum}次。\n🎄🎄修仙物品{propname} {propnum}个\n㊗㊗祝各位道友永远快乐！φ（￣∇￣o）'
+        msg = f'2025劳动节快乐！\n🎄🎄您获得了传承抽卡次数{scorenum}次。\n🎄🎄修仙物品{propname} {propnum}个\n㊗㊗祝各位道友永远快乐！φ（￣∇￣o）'
         params_items = [('msg', msg)]               
         buttons = [
             [(2, '礼包传承抽卡', '礼包传承抽卡', True)],  

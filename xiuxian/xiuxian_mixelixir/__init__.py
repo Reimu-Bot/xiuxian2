@@ -801,7 +801,7 @@ async def yaocai_back_(bot: Bot, event: GroupMessageEvent):
     # 构建按钮
     buttons = [
         [(2, '炼丹', '炼丹', False), (2, '配方', '配方', False)],
-        [(2, '丹药背包', '丹药背包', True), (2, '赠送', '赠送修仙道具', False)],        
+        [(2, '丹药', '丹药背包', True), (2, '赠送', '一键赠送药材', False)],        
     ]
     if upbutton:
         buttons.append([(2, '⬅️上一页', upbutton, True)])

@@ -25,7 +25,7 @@ async def download_url(url: str) -> bytes:
 
 
 async def download_avatar(user_id: str) -> bytes:
-    old_user_id = await get_old_user_id(user_id)
+    old_user_id = get_old_user_id(user_id)
     #url = f"http://q1.qlogo.cn/g?b=qq&nk={old_user_id}&s=640"
     url = f"https://q.qlogo.cn/qqapp/102075800/{old_user_id}/640"
     data = await download_url(url)

@@ -70,6 +70,15 @@ async def fusion_(bot: Bot, event: GroupMessageEvent, args: Message = CommandArg
         await fusion.finish()
 
     args_str = args.extract_plain_text().strip()
+   # if args_str == '星霜':
+   #     msg = f"{args_str}暂时无法合成"
+   #     params_items = [('msg', msg)]               
+   #     buttons = [
+  #          [(2, '查看可合成物品', '查看可合成物品', True)],            
+  #      ]
+  #      data = await markdown(params_items, buttons)
+  #      await bot.send_group_msg(group_id=int(send_group_id), message=MessageSegment("markdown", {"data": data})) 
+  #      await fusion.finish()
     equipment_id, equipment = items.get_data_by_item_name(args_str)
     if equipment is None:
         msg = f"未找到可合成的物品：{args_str}"

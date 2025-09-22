@@ -115,7 +115,7 @@ STORY = {
         },
     },
     "无事": {
-        "type_rate": 15,
+        "type_rate": 20,
     }
 }
 
@@ -420,6 +420,7 @@ def get_skill_by_rank(user_level, rift_rank):
         if user_rank - rift_rank <= v['rank']:  # 秘境等级会增幅用户等级
        # if user_rank - rift_rank <= v['rank'] and v['level'] != "无上仙法":
             temp_dict.append(k)
+
     return random.choice(temp_dict)
 
 
